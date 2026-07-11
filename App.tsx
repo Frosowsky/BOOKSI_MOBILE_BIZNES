@@ -8,7 +8,7 @@ import { ThemeProvider } from './src/context/ThemeContext';
 import * as Sentry from '@sentry/react-native';
 
 Sentry.init({
-  dsn: "https://dummy@sentry.io/1234567", // TODO: Replace with real DSN
+  dsn: "https://298520f4490c3807cda320d377975382@o4511717924995072.ingest.de.sentry.io/4511717933252688",
   tracesSampleRate: 1.0,
 });
 
