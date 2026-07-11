@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, 
 import api from '../../api/client';
 import { User, Phone, ChevronRight, Plus, X, Search, Mail, ArrowDownAZ, ArrowDown01 } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
+import { useThemeColors } from '../../theme/useThemeColors';
 interface ClientDto {
   id: string;
   firstName: string;
@@ -14,6 +14,7 @@ interface ClientDto {
 }
 
 export const ClientsScreen = () => {
+  const { colors, isDark } = useThemeColors();
   const [clients, setClients] = useState<ClientDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -126,21 +127,21 @@ export const ClientsScreen = () => {
 
   const renderItem = ({ item }: { item: ClientDto }) => {
     return (
-      <View style={styles.card}>
+    <View style={[styles.card, { backgroundColor: colors.surface, shadowColor: colors.cardShadow }]}>
         <View style={styles.cardTop}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{item.firstName.charAt(0)}{item.lastName.charAt(0)}</Text>
+          <View style={[styles.avatar, { backgroundColor: isDark ? '#334155' : '#e2e8f0' }]}>
+            <Text style={[styles.avatarText, { color: isDark ? '#cbd5e1' : '#475569' }]}>{item.firstName.charAt(0)}{item.lastName.charAt(0)}</Text>
           </View>
           <View style={styles.info}>
-            <Text style={styles.name}>{item.firstName} {item.lastName}</Text>
-            <Text style={styles.visits}>Ilość wizyt: {item.visitsCount}</Text>
+            <Text style={[styles.name, { color: colors.text }]}>{item.firstName} {item.lastName}</Text>
+            <Text style={[styles.visits, { color: colors.textMuted }]}>Ilość wizyt: {item.visitsCount}</Text>
           </View>
-          <ChevronRight color="#cbd5e1" size={24} />
+          <ChevronRight color={colors.textMuted} size={24} />
         </View>
         
         {/* Contact Actions */}
         {(item.phoneNumber || item.email) && (
-          <View style={styles.contactRow}>
+          <View style={[styles.contactRow, { borderTopColor: colors.border }]}>
             {item.phoneNumber && (
               <TouchableOpacity style={styles.contactBtn} onPress={() => handleCall(item.phoneNumber!)}>
                 <Phone size={14} color="#3b82f6" style={{marginRight: 6}} />
@@ -161,27 +162,28 @@ export const ClientsScreen = () => {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, styles.center]}>
-        <ActivityIndicator size="large" color="#3b82f6" />
+      <SafeAreaView style={[styles.container, styles.center, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Klienci Salonu</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+        <Text style={[styles.title, { color: colors.text }]}>Klienci Salonu</Text>
         <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
           <Plus color="#ffffff" size={20} />
           <Text style={styles.addButtonText}>Dodaj</Text>
         </TouchableOpacity>
       </View>
 
-      <View style={styles.toolsContainer}>
-        <View style={styles.searchBox}>
-          <Search color="#94a3b8" size={20} />
+      <View style={[styles.toolsContainer, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+        <View style={[styles.searchBox, { backgroundColor: isDark ? '#334155' : '#f1f5f9' }]}>
+          <Search color={colors.textMuted} size={20} />
           <TextInput 
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: colors.text }]}
+            placeholderTextColor={colors.textMuted}
             placeholder="Szukaj klienta..."
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -193,20 +195,20 @@ export const ClientsScreen = () => {
           )}
         </View>
         <View style={styles.sortRow}>
-          <Text style={styles.sortLabel}>Sortuj:</Text>
+          <Text style={[styles.sortLabel, { color: colors.textMuted }]}>Sortuj:</Text>
           <TouchableOpacity 
-            style={[styles.sortBtn, sortBy === 'name' && styles.sortBtnActive]} 
+            style={[styles.sortBtn, { backgroundColor: isDark ? '#334155' : '#f1f5f9' }, sortBy === 'name' && { backgroundColor: colors.primary }]} 
             onPress={() => handleSortToggle('name')}
           >
             <ArrowDownAZ size={14} color={sortBy === 'name' ? '#ffffff' : '#64748b'} style={{marginRight: 4, transform: [{rotate: sortBy === 'name' && sortOrder === 'desc' ? '180deg' : '0deg'}]}} />
             <Text style={[styles.sortText, sortBy === 'name' && styles.sortTextActive]}>Alfabetycznie</Text>
           </TouchableOpacity>
           <TouchableOpacity 
-            style={[styles.sortBtn, sortBy === 'visits' && styles.sortBtnActive]} 
+            style={[styles.sortBtn, { backgroundColor: isDark ? '#334155' : '#f1f5f9' }, sortBy === 'visits' && { backgroundColor: colors.primary }]} 
             onPress={() => handleSortToggle('visits')}
           >
-            <ArrowDown01 size={14} color={sortBy === 'visits' ? '#ffffff' : '#64748b'} style={{marginRight: 4, transform: [{rotate: sortBy === 'visits' && sortOrder === 'desc' ? '180deg' : '0deg'}]}} />
-            <Text style={[styles.sortText, sortBy === 'visits' && styles.sortTextActive]}>Wg Wizyt</Text>
+            <ArrowDown01 size={14} color={sortBy === 'visits' ? '#ffffff' : colors.textMuted} style={{marginRight: 4, transform: [{rotate: sortBy === 'visits' && sortOrder === 'desc' ? '180deg' : '0deg'}]}} />
+            <Text style={[styles.sortText, { color: colors.textMuted }, sortBy === 'visits' && styles.sortTextActive]}>Wg Wizyt</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -224,32 +226,32 @@ export const ClientsScreen = () => {
 
       <Modal visible={modalVisible} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Nowy Klient</Text>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>Nowy Klient</Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <X color="#64748b" size={24} />
+                <X color={colors.textMuted} size={24} />
               </TouchableOpacity>
             </View>
             
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Imię *</Text>
-              <TextInput style={styles.input} value={firstName} onChangeText={setFirstName} placeholder="Wprowadź imię" />
+              <Text style={[styles.label, { color: colors.text }]}>Imię *</Text>
+              <TextInput style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]} placeholderTextColor={colors.textMuted} value={firstName} onChangeText={setFirstName} placeholder="Wprowadź imię" />
             </View>
             
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Nazwisko *</Text>
-              <TextInput style={styles.input} value={lastName} onChangeText={setLastName} placeholder="Wprowadź nazwisko" />
+              <Text style={[styles.label, { color: colors.text }]}>Nazwisko *</Text>
+              <TextInput style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]} placeholderTextColor={colors.textMuted} value={lastName} onChangeText={setLastName} placeholder="Wprowadź nazwisko" />
             </View>
             
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Telefon</Text>
-              <TextInput style={styles.input} value={phone} onChangeText={setPhone} placeholder="Wprowadź nr telefonu" keyboardType="phone-pad" />
+              <Text style={[styles.label, { color: colors.text }]}>Telefon</Text>
+              <TextInput style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]} placeholderTextColor={colors.textMuted} value={phone} onChangeText={setPhone} placeholder="Wprowadź nr telefonu" keyboardType="phone-pad" />
             </View>
             
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Email</Text>
-              <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="Wprowadź adres email" keyboardType="email-address" autoCapitalize="none" />
+              <Text style={[styles.label, { color: colors.text }]}>Email</Text>
+              <TextInput style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]} placeholderTextColor={colors.textMuted} value={email} onChangeText={setEmail} placeholder="Wprowadź adres email" keyboardType="email-address" autoCapitalize="none" />
             </View>
 
             <TouchableOpacity style={[styles.submitButton, creating && styles.submitButtonDisabled]} onPress={handleAddClient} disabled={creating}>

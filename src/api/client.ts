@@ -63,8 +63,9 @@ api.interceptors.response.use(
       } catch (err) {
         // Refresh failed, clear storage
         await AsyncStorage.multiRemove(['token', 'refreshToken', 'user_role', 'tenant_id', 'salonId']);
-        // Note: For React Native, we handle navigation via a global ref or Context,
-        // we can't use window.location.href. We will emit an event or rely on auth state listener.
+        import('react-native').then(({ DeviceEventEmitter }) => {
+          DeviceEventEmitter.emit('UNAUTHORIZED');
+        });
       }
     }
     return Promise.reject(error);

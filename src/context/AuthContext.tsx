@@ -44,6 +44,15 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     };
 
     bootstrapAsync();
+
+    const { DeviceEventEmitter } = require('react-native');
+    const listener = DeviceEventEmitter.addListener('UNAUTHORIZED', () => {
+      signOut();
+    });
+
+    return () => {
+      listener.remove();
+    };
   }, []);
 
   const signIn = async (token: string, refreshToken: string, newSalonId: string, newTenantId: string) => {

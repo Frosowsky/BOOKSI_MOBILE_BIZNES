@@ -1,4 +1,4 @@
-import { useColorScheme } from 'react-native';
+import { useThemeContext } from '../context/ThemeContext';
 
 const lightColors = {
   background: '#f8fafc',
@@ -17,12 +17,12 @@ const lightColors = {
 };
 
 const darkColors = {
-  background: '#0f172a', // ciemne tło (slate-900)
-  surface: '#1e293b',    // karty (slate-800)
-  text: '#f8fafc',       // białawy tekst
-  textMuted: '#94a3b8',  // wyszarzony tekst
+  background: '#0f172a',
+  surface: '#1e293b',
+  text: '#f8fafc',
+  textMuted: '#94a3b8',
   primary: '#3b82f6',
-  border: '#334155',     // ciemniejsze ramki
+  border: '#334155',
   error: '#f87171',
   success: '#4ade80',
   tabBar: '#1e293b',
@@ -33,11 +33,12 @@ const darkColors = {
 };
 
 export const useThemeColors = () => {
-  const scheme = useColorScheme(); // 'light' | 'dark' | null
-  const isDark = scheme === 'dark';
+  const { isDark, mode, setThemeMode } = useThemeContext();
 
   return {
     isDark,
+    mode,
+    setThemeMode,
     colors: isDark ? darkColors : lightColors,
   };
 };

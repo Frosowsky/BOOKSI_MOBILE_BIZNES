@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, 
 import api from '../../api/client';
 import { User, Phone, CheckCircle2, XCircle, Plus, X, Power, Calendar, Search, ArrowDownAZ } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useThemeColors } from '../../theme/useThemeColors';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
@@ -17,6 +18,7 @@ interface EmployeeDto {
 }
 
 export const EmployeesScreen = () => {
+  const { colors, isDark } = useThemeColors();
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
   const [employees, setEmployees] = useState<EmployeeDto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -142,35 +144,35 @@ export const EmployeesScreen = () => {
 
   const renderItem = useCallback(({ item }: { item: EmployeeDto }) => {
     return (
-      <View style={styles.card}>
+      <View style={[styles.card, { backgroundColor: colors.surface, shadowColor: colors.cardShadow }]}>
         <View style={styles.cardHeader}>
-          <Text style={styles.name}>{item.firstName} {item.lastName}</Text>
+          <Text style={[styles.name, { color: colors.text }]}>{item.firstName} {item.lastName}</Text>
           <View style={[styles.badge, { backgroundColor: item.isActive ? '#dcfce7' : '#fee2e2' }]}>
             <Text style={[styles.badgeText, { color: item.isActive ? '#166534' : '#991b1b' }]}>
               {item.isActive ? 'Aktywny' : 'Nieaktywny'}
             </Text>
           </View>
         </View>
-        {item.jobTitle && <Text style={styles.jobTitle}>{item.jobTitle}</Text>}
-        <Text style={styles.email}>{item.email}</Text>
+        {item.jobTitle && <Text style={[styles.jobTitle, { color: colors.primary }]}>{item.jobTitle}</Text>}
+        <Text style={[styles.email, { color: colors.textMuted }]}>{item.email}</Text>
         <View style={styles.footer}>
           <View style={styles.phoneRow}>
             {item.phoneNumber && (
               <>
-                <Phone size={14} color="#64748b" style={{marginRight: 6}} />
-                <Text style={styles.phoneText}>{item.phoneNumber}</Text>
+                <Phone size={14} color={colors.textMuted} style={{marginRight: 6}} />
+                <Text style={[styles.phoneText, { color: colors.textMuted }]}>{item.phoneNumber}</Text>
               </>
             )}
           </View>
           <View style={styles.actionsContainer}>
             <TouchableOpacity 
-              style={[styles.actionBtn, { marginRight: 8 }]} 
+              style={[styles.actionBtn, { backgroundColor: colors.background, borderColor: colors.border, marginRight: 8 }]} 
               onPress={() => navigation.navigate('EmployeeSchedule', { employeeId: item.id, employeeName: `${item.firstName} ${item.lastName}` })}
             >
-              <Calendar color="#3b82f6" size={20} />
+              <Calendar color={colors.primary} size={20} />
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => handleToggleActive(item.id, item.isActive)} style={styles.actionBtn}>
-              <Power color={item.isActive ? '#ef4444' : '#10b981'} size={20} />
+            <TouchableOpacity onPress={() => handleToggleActive(item.id, item.isActive)} style={[styles.actionBtn, { backgroundColor: colors.background, borderColor: colors.border }]}>
+              <Power color={item.isActive ? colors.error : colors.success} size={20} />
             </TouchableOpacity>
           </View>
         </View>
@@ -180,27 +182,28 @@ export const EmployeesScreen = () => {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, styles.center]}>
-        <ActivityIndicator size="large" color="#3b82f6" />
+      <SafeAreaView style={[styles.container, styles.center, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Pracownicy Salonu</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+        <Text style={[styles.title, { color: colors.text }]}>Pracownicy Salonu</Text>
         <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
           <Plus color="#ffffff" size={20} />
           <Text style={styles.addButtonText}>Dodaj</Text>
         </TouchableOpacity>
       </View>
 
-      <View style={styles.toolsContainer}>
-        <View style={styles.searchBox}>
-          <Search color="#94a3b8" size={20} />
+      <View style={[styles.toolsContainer, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+        <View style={[styles.searchBox, { backgroundColor: isDark ? '#334155' : '#f1f5f9' }]}>
+          <Search color={colors.textMuted} size={20} />
           <TextInput 
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: colors.text }]}
+            placeholderTextColor={colors.textMuted}
             placeholder="Szukaj pracownika..."
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -212,20 +215,20 @@ export const EmployeesScreen = () => {
           )}
         </View>
         <View style={styles.sortRow}>
-          <Text style={styles.sortLabel}>Sortuj:</Text>
+          <Text style={[styles.sortLabel, { color: colors.textMuted }]}>Sortuj:</Text>
           <TouchableOpacity 
-            style={[styles.sortBtn, sortBy === 'lastName' && styles.sortBtnActive]} 
+            style={[styles.sortBtn, { backgroundColor: isDark ? '#334155' : '#f1f5f9' }, sortBy === 'lastName' && { backgroundColor: colors.primary }]} 
             onPress={() => handleSortToggle('lastName')}
           >
-            <ArrowDownAZ size={14} color={sortBy === 'lastName' ? '#ffffff' : '#64748b'} style={{marginRight: 4, transform: [{rotate: sortBy === 'lastName' && sortOrder === 'desc' ? '180deg' : '0deg'}]}} />
-            <Text style={[styles.sortText, sortBy === 'lastName' && styles.sortTextActive]}>Po Nazwisku</Text>
+            <ArrowDownAZ size={14} color={sortBy === 'lastName' ? '#ffffff' : colors.textMuted} style={{marginRight: 4, transform: [{rotate: sortBy === 'lastName' && sortOrder === 'desc' ? '180deg' : '0deg'}]}} />
+            <Text style={[styles.sortText, { color: colors.textMuted }, sortBy === 'lastName' && styles.sortTextActive]}>Po Nazwisku</Text>
           </TouchableOpacity>
           <TouchableOpacity 
-            style={[styles.sortBtn, sortBy === 'firstName' && styles.sortBtnActive]} 
+            style={[styles.sortBtn, { backgroundColor: isDark ? '#334155' : '#f1f5f9' }, sortBy === 'firstName' && { backgroundColor: colors.primary }]} 
             onPress={() => handleSortToggle('firstName')}
           >
-            <ArrowDownAZ size={14} color={sortBy === 'firstName' ? '#ffffff' : '#64748b'} style={{marginRight: 4, transform: [{rotate: sortBy === 'firstName' && sortOrder === 'desc' ? '180deg' : '0deg'}]}} />
-            <Text style={[styles.sortText, sortBy === 'firstName' && styles.sortTextActive]}>Po Imieniu</Text>
+            <ArrowDownAZ size={14} color={sortBy === 'firstName' ? '#ffffff' : colors.textMuted} style={{marginRight: 4, transform: [{rotate: sortBy === 'firstName' && sortOrder === 'desc' ? '180deg' : '0deg'}]}} />
+            <Text style={[styles.sortText, { color: colors.textMuted }, sortBy === 'firstName' && styles.sortTextActive]}>Po Imieniu</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -243,29 +246,29 @@ export const EmployeesScreen = () => {
 
       <Modal visible={modalVisible} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Nowy Pracownik</Text>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>Nowy Pracownik</Text>
                 <TouchableOpacity onPress={() => setModalVisible(false)}>
-                  <X color="#64748b" size={24} />
+                  <X color={colors.textMuted} size={24} />
                 </TouchableOpacity>
               </View>
               
-              <Text style={styles.label}>Imię *</Text>
-              <TextInput style={styles.input} value={firstName} onChangeText={setFirstName} placeholder="Imię" />
+              <Text style={[styles.label, { color: colors.text }]}>Imię *</Text>
+              <TextInput style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]} placeholderTextColor={colors.textMuted} value={firstName} onChangeText={setFirstName} placeholder="Imię" />
               
-              <Text style={styles.label}>Nazwisko *</Text>
-              <TextInput style={styles.input} value={lastName} onChangeText={setLastName} placeholder="Nazwisko" />
+              <Text style={[styles.label, { color: colors.text }]}>Nazwisko *</Text>
+              <TextInput style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]} placeholderTextColor={colors.textMuted} value={lastName} onChangeText={setLastName} placeholder="Nazwisko" />
               
-              <Text style={styles.label}>Email *</Text>
-              <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="adres@email.com" keyboardType="email-address" autoCapitalize="none" />
+              <Text style={[styles.label, { color: colors.text }]}>Email *</Text>
+              <TextInput style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]} placeholderTextColor={colors.textMuted} value={email} onChangeText={setEmail} placeholder="adres@email.com" keyboardType="email-address" autoCapitalize="none" />
               
-              <Text style={styles.label}>Telefon</Text>
-              <TextInput style={styles.input} value={phoneNumber} onChangeText={setPhoneNumber} placeholder="Numer telefonu" keyboardType="phone-pad" />
+              <Text style={[styles.label, { color: colors.text }]}>Telefon</Text>
+              <TextInput style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]} placeholderTextColor={colors.textMuted} value={phoneNumber} onChangeText={setPhoneNumber} placeholder="Numer telefonu" keyboardType="phone-pad" />
               
-              <Text style={styles.label}>Stanowisko</Text>
-              <TextInput style={styles.input} value={jobTitle} onChangeText={setJobTitle} placeholder="np. Stylista" />
+              <Text style={[styles.label, { color: colors.text }]}>Stanowisko</Text>
+              <TextInput style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]} placeholderTextColor={colors.textMuted} value={jobTitle} onChangeText={setJobTitle} placeholder="np. Stylista" />
 
               <TouchableOpacity style={styles.submitButton} onPress={handleAddEmployee} disabled={submitting}>
                 {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitButtonText}>Dodaj Pracownika</Text>}

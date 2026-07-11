@@ -4,6 +4,7 @@ import api from '../../api/client';
 import { ArrowLeft, ChevronLeft, ChevronRight, Save, Plus, X } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useThemeColors } from '../../theme/useThemeColors';
 
 type RouteParams = {
   EmployeeSchedule: {
@@ -29,6 +30,7 @@ export const EmployeeScheduleScreen = () => {
   const navigation = useNavigation();
   const route = useRoute<RouteProp<RouteParams, 'EmployeeSchedule'>>();
   const { employeeId, employeeName } = route.params || { employeeId: '', employeeName: '' };
+  const { colors, isDark } = useThemeColors();
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -206,11 +208,11 @@ export const EmployeeScheduleScreen = () => {
     const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
 
     return (
-      <View style={[styles.dayCard, isWeekend && styles.weekendCard]}>
+      <View style={[styles.dayCard, { backgroundColor: colors.surface, shadowColor: colors.cardShadow }, isWeekend && { backgroundColor: isDark ? '#1e293b' : '#f1f5f9' }]}>
         <View style={styles.dayTopRow}>
           <View style={styles.dayInfo}>
-            <Text style={styles.dayNum}>{item.day}</Text>
-            <Text style={styles.dayName}>{dateObj.toLocaleString('pl-PL', { weekday: 'short' })}</Text>
+            <Text style={[styles.dayNum, { color: colors.text }]}>{item.day}</Text>
+            <Text style={[styles.dayName, { color: colors.textMuted }]}>{dateObj.toLocaleString('pl-PL', { weekday: 'short' })}</Text>
           </View>
 
           <TouchableOpacity 
@@ -228,15 +230,15 @@ export const EmployeeScheduleScreen = () => {
             {item.slots.map((slot) => (
               <View key={slot.id} style={styles.slotRow}>
                 <TextInput 
-                  style={styles.timeInput} 
+                  style={[styles.timeInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]} 
                   value={slot.startTime} 
                   onChangeText={(val) => handleUpdateSlot(index, slot.id, 'startTime', val)}
                   keyboardType="numeric"
                   maxLength={5}
                 />
-                <Text style={styles.slotDivider}>-</Text>
+                <Text style={[styles.slotDivider, { color: colors.textMuted }]}>-</Text>
                 <TextInput 
-                  style={styles.timeInput} 
+                  style={[styles.timeInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]} 
                   value={slot.endTime} 
                   onChangeText={(val) => handleUpdateSlot(index, slot.id, 'endTime', val)}
                   keyboardType="numeric"
@@ -258,27 +260,27 @@ export const EmployeeScheduleScreen = () => {
   }, [handleToggleWorking, handleAddSlot, handleRemoveSlot, handleUpdateSlot]);
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={{marginRight: 16}}>
-          <ArrowLeft color="#0f172a" size={24} />
+          <ArrowLeft color={colors.text} size={24} />
         </TouchableOpacity>
-        <Text style={styles.title} numberOfLines={1}>{employeeName} - Grafik</Text>
+        <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>{employeeName} - Grafik</Text>
       </View>
 
-      <View style={styles.monthSelector}>
+      <View style={[styles.monthSelector, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity style={styles.monthBtn} onPress={() => changeMonth(-1)}>
-          <ChevronLeft color="#3b82f6" size={24} />
+          <ChevronLeft color={colors.primary} size={24} />
         </TouchableOpacity>
-        <Text style={styles.monthText}>{monthName.charAt(0).toUpperCase() + monthName.slice(1)}</Text>
+        <Text style={[styles.monthText, { color: colors.text }]}>{monthName.charAt(0).toUpperCase() + monthName.slice(1)}</Text>
         <TouchableOpacity style={styles.monthBtn} onPress={() => changeMonth(1)}>
-          <ChevronRight color="#3b82f6" size={24} />
+          <ChevronRight color={colors.primary} size={24} />
         </TouchableOpacity>
       </View>
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator size="large" color="#3b82f6" />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : (
         <FlatList
@@ -291,8 +293,8 @@ export const EmployeeScheduleScreen = () => {
         />
       )}
 
-      <View style={styles.footer}>
-        <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={submitting || loading}>
+      <View style={[styles.footer, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
+        <TouchableOpacity style={[styles.saveBtn, { backgroundColor: isDark ? colors.primary : '#0f172a' }]} onPress={handleSave} disabled={submitting || loading}>
           {submitting ? <ActivityIndicator color="#fff" /> : (
             <>
               <Save color="#fff" size={20} style={{marginRight: 8}}/>

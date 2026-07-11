@@ -15,7 +15,7 @@ interface SalonSettings {
 }
 
 export const SettingsScreen = () => {
-  const { colors, isDark } = useThemeColors();
+  const { colors, isDark, mode, setThemeMode } = useThemeColors();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<SalonSettings>({
@@ -178,6 +178,44 @@ export const SettingsScreen = () => {
           )}
         </View>
 
+        <View style={[styles.card, { backgroundColor: colors.surface, shadowColor: colors.cardShadow }]}>
+          <Text style={[styles.settingTitle, { color: colors.text, marginBottom: 12 }]}>Motyw Aplikacji</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+            <TouchableOpacity 
+              style={[
+                styles.themeOption, 
+                { borderColor: colors.border },
+                mode === 'system' && { borderColor: colors.primary, backgroundColor: isDark ? '#1e3a8a' : '#eff6ff' }
+              ]}
+              onPress={() => setThemeMode('system')}
+            >
+              <Text style={[styles.themeText, { color: colors.textMuted }, mode === 'system' && { color: isDark ? '#93c5fd' : '#1e3a8a', fontWeight: 'bold' }]}>Systemowy</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[
+                styles.themeOption, 
+                { borderColor: colors.border },
+                mode === 'light' && { borderColor: colors.primary, backgroundColor: '#eff6ff' }
+              ]}
+              onPress={() => setThemeMode('light')}
+            >
+              <Text style={[styles.themeText, { color: colors.textMuted }, mode === 'light' && { color: '#1e3a8a', fontWeight: 'bold' }]}>Jasny</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[
+                styles.themeOption, 
+                { borderColor: colors.border },
+                mode === 'dark' && { borderColor: colors.primary, backgroundColor: '#1e3a8a' }
+              ]}
+              onPress={() => setThemeMode('dark')}
+            >
+              <Text style={[styles.themeText, { color: colors.textMuted }, mode === 'dark' && { color: '#93c5fd', fontWeight: 'bold' }]}>Ciemny</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         <TouchableOpacity 
           style={[styles.saveBtn, { backgroundColor: isDark ? colors.primary : '#0f172a' }]} 
           onPress={saveSettings} 
@@ -238,4 +276,6 @@ const styles = StyleSheet.create({
   strategyLabel: { fontSize: 14, fontWeight: '600', marginBottom: 12 },
   strategyOption: { padding: 12, borderRadius: 8, borderWidth: 1, marginBottom: 8 },
   strategyText: { fontSize: 13 },
+  themeOption: { flex: 1, paddingVertical: 10, borderRadius: 8, borderWidth: 1, marginHorizontal: 4, alignItems: 'center' },
+  themeText: { fontSize: 14 },
 });

@@ -4,6 +4,7 @@ import api from '../../api/client';
 import { CheckCircle2, XCircle, Clock, Plus, X, ArrowLeft, MoreHorizontal } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { useThemeColors } from '../../theme/useThemeColors';
 
 interface WaitlistEntry {
   id: string;
@@ -16,6 +17,7 @@ interface WaitlistEntry {
 }
 
 export const WaitlistScreen = () => {
+  const { colors, isDark } = useThemeColors();
   const navigation = useNavigation();
   const [entries, setEntries] = useState<WaitlistEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,29 +74,29 @@ export const WaitlistScreen = () => {
   const renderItem = useCallback(({ item }: { item: WaitlistEntry }) => {
     const badge = getStatusBadge(item.status);
     return (
-      <View style={styles.card}>
+      <View style={[styles.card, { backgroundColor: colors.surface, shadowColor: colors.cardShadow }]}>
         <View style={styles.cardHeader}>
-          <Text style={styles.name}>{item.clientName}</Text>
+          <Text style={[styles.name, { color: colors.text }]}>{item.clientName}</Text>
           <View style={[styles.badge, { backgroundColor: badge.bg }]}>
             <Text style={[styles.badgeText, { color: badge.text }]}>{badge.label}</Text>
           </View>
         </View>
-        <Text style={styles.dateText}>Preferowana data: {new Date(item.requestedDate).toLocaleDateString()}</Text>
-        {item.notes && <Text style={styles.notes}>{item.notes}</Text>}
+        <Text style={[styles.dateText, { color: colors.textMuted }]}>Preferowana data: {new Date(item.requestedDate).toLocaleDateString()}</Text>
+        {item.notes && <Text style={[styles.notes, { color: colors.textMuted }]}>{item.notes}</Text>}
         
-        <View style={styles.actions}>
+        <View style={[styles.actions, { borderTopColor: colors.border }]}>
           {item.status === 'Pending' && (
-            <TouchableOpacity style={[styles.btn, styles.notifyBtn]} onPress={() => handleUpdateStatus(item.id, 'Notified')}>
-              <Text style={styles.btnTextNotify}>Oznacz jako powiadomiony</Text>
+            <TouchableOpacity style={[styles.btn, styles.notifyBtn, { backgroundColor: isDark ? '#1e3a8a' : '#eff6ff', borderColor: isDark ? '#1e3a8a' : '#bfdbfe' }]} onPress={() => handleUpdateStatus(item.id, 'Notified')}>
+              <Text style={[styles.btnTextNotify, isDark && { color: '#93c5fd' }]}>Oznacz jako powiadomiony</Text>
             </TouchableOpacity>
           )}
           {item.status === 'Notified' && (
-            <TouchableOpacity style={[styles.btn, styles.confirmBtn]} onPress={() => handleUpdateStatus(item.id, 'Confirmed')}>
-              <Text style={styles.btnTextConfirm}>Potwierdź rezerwację</Text>
+            <TouchableOpacity style={[styles.btn, styles.confirmBtn, { backgroundColor: isDark ? '#064e3b' : '#f0fdf4', borderColor: isDark ? '#064e3b' : '#bbf7d0' }]} onPress={() => handleUpdateStatus(item.id, 'Confirmed')}>
+              <Text style={[styles.btnTextConfirm, isDark && { color: '#86efac' }]}>Potwierdź rezerwację</Text>
             </TouchableOpacity>
           )}
-          <TouchableOpacity style={[styles.btn, styles.cancelBtn]} onPress={() => handleDelete(item.id)}>
-            <Text style={styles.btnTextCancel}>Usuń</Text>
+          <TouchableOpacity style={[styles.btn, styles.cancelBtn, { backgroundColor: isDark ? '#7f1d1d' : '#fef2f2', borderColor: isDark ? '#7f1d1d' : '#fecaca' }]} onPress={() => handleDelete(item.id)}>
+            <Text style={[styles.btnTextCancel, isDark && { color: '#fca5a5' }]}>Usuń</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -103,19 +105,19 @@ export const WaitlistScreen = () => {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, styles.center]}>
-        <ActivityIndicator size="large" color="#3b82f6" />
+      <SafeAreaView style={[styles.container, styles.center, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={{marginRight: 16}}>
-          <ArrowLeft color="#0f172a" size={24} />
+          <ArrowLeft color={colors.text} size={24} />
         </TouchableOpacity>
-        <Text style={styles.title}>Lista Rezerwowa</Text>
+        <Text style={[styles.title, { color: colors.text }]}>Lista Rezerwowa</Text>
       </View>
 
       <FlatList
