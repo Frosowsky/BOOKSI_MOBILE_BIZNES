@@ -29,8 +29,8 @@ export const Step1CompanyDetails = ({ navigation }: any) => {
   }, []);
 
   const handleNext = async () => {
-    if (!name.trim()) {
-      Alert.alert('Błąd', 'Nazwa salonu jest wymagana.');
+    if (!name || !address || !nip) {
+      Alert.alert('Błąd', 'Nazwa, NIP i adres są wymagane.');
       return;
     }
     
@@ -75,7 +75,7 @@ export const Step1CompanyDetails = ({ navigation }: any) => {
         </View>
 
         <View style={styles.inputContainer}>
-          <Text style={[styles.label, { color: colors.text }]}>NIP</Text>
+          <Text style={[styles.label, { color: colors.text }]}>NIP *</Text>
           <TextInput
             style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface }]}
             value={nip}

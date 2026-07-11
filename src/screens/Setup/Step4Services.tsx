@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, ScrollView, Alert, FlatList } from 'react-native';
+import { View, Text, StyleSheet, TextInput, ScrollView, Alert, FlatList, TouchableOpacity } from 'react-native';
 import { Button } from '../../components/Button';
 import { useThemeColors } from '../../theme/useThemeColors';
 import api from '../../api/client';
@@ -128,8 +128,14 @@ export const Step4Services = ({ navigation }: any) => {
         ListEmptyComponent={<Text style={{ color: colors.text, textAlign: 'center', marginTop: 20 }}>Brak usług.</Text>}
       />
 
-      <View style={{ marginTop: 10, marginBottom: 20 }}>
-        <Button title="Dalej: Pracownicy" onPress={() => navigation.navigate('Step5Employees')} />
+      <View style={{ marginTop: 30, flexDirection: 'row', gap: 10, marginBottom: 40 }}>
+        <TouchableOpacity 
+          style={{ flex: 1, paddingVertical: 12, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }} 
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={{ color: colors.text, fontSize: 16, fontWeight: '600' }}>Wstecz</Text>
+        </TouchableOpacity>
+        <Button title="Dalej: Pracownicy" onPress={() => navigation.navigate('Step5Employees')} style={{ flex: 1 }} />
       </View>
     </View>
   );

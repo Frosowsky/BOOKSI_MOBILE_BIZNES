@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Switch, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Switch, Alert, TouchableOpacity } from 'react-native';
 import { Button } from '../../components/Button';
 import { useThemeColors } from '../../theme/useThemeColors';
 import api from '../../api/client';
@@ -112,8 +112,14 @@ export const Step2BusinessHours = ({ navigation }: any) => {
         </View>
       ))}
 
-      <View style={{ marginTop: 40 }}>
-        <Button title="Zapisz i kontynuuj" onPress={handleNext} loading={isLoading} />
+      <View style={{ marginTop: 40, flexDirection: 'row', gap: 10 }}>
+        <TouchableOpacity 
+          style={{ flex: 1, paddingVertical: 12, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }} 
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={{ color: colors.text, fontSize: 16, fontWeight: '600' }}>Wstecz</Text>
+        </TouchableOpacity>
+        <Button title="Dalej" onPress={handleNext} loading={isLoading} style={{ flex: 1 }} />
       </View>
 
       <DateTimePickerModal

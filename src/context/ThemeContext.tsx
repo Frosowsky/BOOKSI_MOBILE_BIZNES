@@ -13,7 +13,7 @@ interface ThemeContextData {
 const ThemeContext = createContext<ThemeContextData>({} as ThemeContextData);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const systemScheme = useColorScheme();
+  const rnColorScheme = useColorScheme();
   const [mode, setModeState] = useState<ThemeMode>('system');
 
   useEffect(() => {
@@ -29,7 +29,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     await AsyncStorage.setItem('@theme_mode', newMode);
   };
 
-  const isDark = mode === 'system' ? systemScheme === 'dark' : mode === 'dark';
+  const isDark = mode === 'system' ? (rnColorScheme === 'dark') : (mode === 'dark');
 
   return (
     <ThemeContext.Provider value={{ mode, isDark, setThemeMode }}>
