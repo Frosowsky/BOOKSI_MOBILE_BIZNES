@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert, TextInput } from 'react-native';
 import api from '../../api/client';
-import { ArrowLeft, ChevronLeft, ChevronRight, Save } from 'lucide-react-native';
+import { ArrowLeft, ChevronLeft, ChevronRight, Save, Plus, X } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 
@@ -12,12 +12,17 @@ type RouteParams = {
   };
 };
 
+interface TimeSlot {
+  id: string; // purely for frontend keying
+  startTime: string;
+  endTime: string;
+}
+
 interface DaySchedule {
   day: number;
   dateStr: string; // YYYY-MM-DD
   isWorkingDay: boolean;
-  startTime: string; // HH:mm
-  endTime: string;   // HH:mm
+  slots: TimeSlot[];
 }
 
 export const EmployeeScheduleScreen = () => {
@@ -28,10 +33,9 @@ export const EmployeeScheduleScreen = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   
-  // Start with current month
   const [currentDate, setCurrentDate] = useState(() => {
     const d = new Date();
-    d.setDate(1); // Set to 1st of month to avoid overflow issues
+    d.setDate(1); 
     return d;
   });
   
@@ -50,18 +54,37 @@ export const EmployeeScheduleScreen = () => {
       const res = await api.get(`/Employees/schedules?start=${startStr}&end=${endStr}&employeeId=${employeeId}`);
       const existing = res.data || [];
 
-      // Map to an array covering all days of the month
       const builtData: DaySchedule[] = [];
       for (let day = 1; day <= daysInMonth; day++) {
         const dStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        const found = existing.find((e: any) => e.date?.startsWith(dStr));
         
+        // Find all records for this specific date
+        const dayRecords = existing.filter((e: any) => e.date?.startsWith(dStr));
+        
+        const isWorking = dayRecords.length > 0 && dayRecords.some((e:any) => e.isWorkingDay);
+        
+        const slots: TimeSlot[] = [];
+        if (isWorking) {
+          dayRecords.forEach((r: any) => {
+            if (r.start && r.end) {
+              slots.push({
+                id: Math.random().toString(36).substr(2, 9),
+                startTime: r.start.substring(0, 5),
+                endTime: r.end.substring(0, 5)
+              });
+            }
+          });
+          // If marked working but no valid slots returned, give a default slot
+          if (slots.length === 0) {
+            slots.push({ id: Math.random().toString(36).substr(2, 9), startTime: '08:00', endTime: '16:00' });
+          }
+        }
+
         builtData.push({
           day,
           dateStr: dStr,
-          isWorkingDay: found ? found.isWorkingDay : false,
-          startTime: (found && found.start) ? found.start.substring(0, 5) : '08:00', // Take HH:mm
-          endTime: (found && found.end) ? found.end.substring(0, 5) : '16:00',
+          isWorkingDay: isWorking,
+          slots: slots
         });
       }
       setScheduleData(builtData);
@@ -83,10 +106,48 @@ export const EmployeeScheduleScreen = () => {
     setCurrentDate(newDate);
   };
 
-  const handleUpdateDay = useCallback((dayIndex: number, field: keyof DaySchedule, value: any) => {
+  const handleToggleWorking = useCallback((dayIndex: number) => {
     setScheduleData(prev => {
       const newData = [...prev];
-      newData[dayIndex] = { ...newData[dayIndex], [field]: value };
+      const dayData = newData[dayIndex];
+      const willWork = !dayData.isWorkingDay;
+      
+      newData[dayIndex] = { 
+        ...dayData, 
+        isWorkingDay: willWork,
+        slots: willWork ? [{ id: Math.random().toString(36).substr(2, 9), startTime: '08:00', endTime: '16:00' }] : []
+      };
+      return newData;
+    });
+  }, []);
+
+  const handleAddSlot = useCallback((dayIndex: number) => {
+    setScheduleData(prev => {
+      const newData = [...prev];
+      newData[dayIndex].slots.push({ id: Math.random().toString(36).substr(2, 9), startTime: '16:00', endTime: '18:00' });
+      return newData;
+    });
+  }, []);
+
+  const handleRemoveSlot = useCallback((dayIndex: number, slotId: string) => {
+    setScheduleData(prev => {
+      const newData = [...prev];
+      newData[dayIndex].slots = newData[dayIndex].slots.filter(s => s.id !== slotId);
+      // If no slots left, mark as not working
+      if (newData[dayIndex].slots.length === 0) {
+        newData[dayIndex].isWorkingDay = false;
+      }
+      return newData;
+    });
+  }, []);
+
+  const handleUpdateSlot = useCallback((dayIndex: number, slotId: string, field: 'startTime' | 'endTime', value: string) => {
+    setScheduleData(prev => {
+      const newData = [...prev];
+      const slotIndex = newData[dayIndex].slots.findIndex(s => s.id === slotId);
+      if (slotIndex > -1) {
+        newData[dayIndex].slots[slotIndex] = { ...newData[dayIndex].slots[slotIndex], [field]: value };
+      }
       return newData;
     });
   }, []);
@@ -94,17 +155,37 @@ export const EmployeeScheduleScreen = () => {
   const handleSave = async () => {
     setSubmitting(true);
     try {
+      const entries: any[] = [];
+      
+      scheduleData.forEach(d => {
+        if (!d.isWorkingDay) {
+          // Send a single entry saying this day is NOT a working day
+          entries.push({
+            dayOfWeek: null,
+            specificDate: `${d.dateStr}T00:00:00Z`,
+            isWorkingDay: false,
+            startTime: null,
+            endTime: null,
+          });
+        } else {
+          // Send an entry for each slot
+          d.slots.forEach(slot => {
+            entries.push({
+              dayOfWeek: null,
+              specificDate: `${d.dateStr}T00:00:00Z`,
+              isWorkingDay: true,
+              startTime: `${slot.startTime}:00`,
+              endTime: `${slot.endTime}:00`,
+            });
+          });
+        }
+      });
+
       const payload = {
         employeeId: employeeId,
         year: currentDate.getFullYear(),
         month: currentDate.getMonth() + 1,
-        entries: scheduleData.map(d => ({
-          dayOfWeek: null,
-          specificDate: `${d.dateStr}T00:00:00Z`,
-          isWorkingDay: d.isWorkingDay,
-          startTime: d.isWorkingDay ? `${d.startTime}:00` : null,
-          endTime: d.isWorkingDay ? `${d.endTime}:00` : null,
-        }))
+        entries: entries
       };
 
       await api.post('/Schedules/schedule', payload);
@@ -121,50 +202,60 @@ export const EmployeeScheduleScreen = () => {
   const monthName = currentDate.toLocaleString('pl-PL', { month: 'long', year: 'numeric' });
 
   const renderItem = useCallback(({ item, index }: { item: DaySchedule; index: number }) => {
-    // Check if it's weekend
     const dateObj = new Date(item.dateStr);
     const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
 
     return (
       <View style={[styles.dayCard, isWeekend && styles.weekendCard]}>
-        <View style={styles.dayInfo}>
-          <Text style={styles.dayNum}>{item.day}</Text>
-          <Text style={styles.dayName}>{dateObj.toLocaleString('pl-PL', { weekday: 'short' })}</Text>
+        <View style={styles.dayTopRow}>
+          <View style={styles.dayInfo}>
+            <Text style={styles.dayNum}>{item.day}</Text>
+            <Text style={styles.dayName}>{dateObj.toLocaleString('pl-PL', { weekday: 'short' })}</Text>
+          </View>
+
+          <TouchableOpacity 
+            style={[styles.toggleBtn, item.isWorkingDay ? styles.toggleWorking : styles.toggleOff]}
+            onPress={() => handleToggleWorking(index)}
+          >
+            <Text style={[styles.toggleText, item.isWorkingDay ? styles.toggleWorkingText : styles.toggleOffText]}>
+              {item.isWorkingDay ? 'Pracuje' : 'Wolne'}
+            </Text>
+          </TouchableOpacity>
         </View>
 
-        <TouchableOpacity 
-          style={[styles.toggleBtn, item.isWorkingDay ? styles.toggleWorking : styles.toggleOff]}
-          onPress={() => handleUpdateDay(index, 'isWorkingDay', !item.isWorkingDay)}
-        >
-          <Text style={[styles.toggleText, item.isWorkingDay ? styles.toggleWorkingText : styles.toggleOffText]}>
-            {item.isWorkingDay ? 'Pracuje' : 'Wolne'}
-          </Text>
-        </TouchableOpacity>
-
-        {item.isWorkingDay ? (
-          <View style={styles.timeInputsBox}>
-            <TextInput 
-              style={styles.timeInput} 
-              value={item.startTime} 
-              onChangeText={(val) => handleUpdateDay(index, 'startTime', val)}
-              keyboardType="numeric"
-              maxLength={5}
-            />
-            <Text style={{marginHorizontal: 4}}>-</Text>
-            <TextInput 
-              style={styles.timeInput} 
-              value={item.endTime} 
-              onChangeText={(val) => handleUpdateDay(index, 'endTime', val)}
-              keyboardType="numeric"
-              maxLength={5}
-            />
+        {item.isWorkingDay && (
+          <View style={styles.slotsContainer}>
+            {item.slots.map((slot) => (
+              <View key={slot.id} style={styles.slotRow}>
+                <TextInput 
+                  style={styles.timeInput} 
+                  value={slot.startTime} 
+                  onChangeText={(val) => handleUpdateSlot(index, slot.id, 'startTime', val)}
+                  keyboardType="numeric"
+                  maxLength={5}
+                />
+                <Text style={styles.slotDivider}>-</Text>
+                <TextInput 
+                  style={styles.timeInput} 
+                  value={slot.endTime} 
+                  onChangeText={(val) => handleUpdateSlot(index, slot.id, 'endTime', val)}
+                  keyboardType="numeric"
+                  maxLength={5}
+                />
+                <TouchableOpacity onPress={() => handleRemoveSlot(index, slot.id)} style={styles.removeSlotBtn}>
+                  <X color="#ef4444" size={20} />
+                </TouchableOpacity>
+              </View>
+            ))}
+            <TouchableOpacity onPress={() => handleAddSlot(index)} style={styles.addSlotBtn}>
+              <Plus color="#3b82f6" size={16} />
+              <Text style={styles.addSlotText}>Dodaj godziny</Text>
+            </TouchableOpacity>
           </View>
-        ) : (
-          <View style={styles.timeInputsBoxPlaceholder} />
         )}
       </View>
     );
-  }, [handleUpdateDay]);
+  }, [handleToggleWorking, handleAddSlot, handleRemoveSlot, handleUpdateSlot]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -223,8 +314,9 @@ const styles = StyleSheet.create({
   monthBtn: { padding: 4 },
   monthText: { fontSize: 16, fontWeight: '600', color: '#1e293b' },
   list: { padding: 16, paddingBottom: 40 },
-  dayCard: { flexDirection: 'row', backgroundColor: '#ffffff', borderRadius: 8, padding: 12, marginBottom: 8, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 },
+  dayCard: { backgroundColor: '#ffffff', borderRadius: 8, padding: 12, marginBottom: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 },
   weekendCard: { backgroundColor: '#f1f5f9' },
+  dayTopRow: { flexDirection: 'row', alignItems: 'center' },
   dayInfo: { width: 50, alignItems: 'center' },
   dayNum: { fontSize: 18, fontWeight: 'bold', color: '#0f172a' },
   dayName: { fontSize: 12, color: '#64748b' },
@@ -234,9 +326,15 @@ const styles = StyleSheet.create({
   toggleWorkingText: { color: '#166534', fontWeight: '600' },
   toggleOff: { backgroundColor: '#fee2e2', borderColor: '#fca5a5' },
   toggleOffText: { color: '#991b1b', fontWeight: '600' },
-  timeInputsBox: { flexDirection: 'row', alignItems: 'center', width: 120, justifyContent: 'flex-end' },
-  timeInputsBoxPlaceholder: { width: 120 },
-  timeInput: { backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, width: 50, textAlign: 'center', fontSize: 13, color: '#0f172a' },
+  
+  slotsContainer: { marginTop: 12, paddingLeft: 62, paddingRight: 12 },
+  slotRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, justifyContent: 'space-between' },
+  slotDivider: { marginHorizontal: 8, color: '#64748b' },
+  timeInput: { flex: 1, backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 6, textAlign: 'center', fontSize: 14, color: '#0f172a' },
+  removeSlotBtn: { padding: 8, marginLeft: 8 },
+  addSlotBtn: { flexDirection: 'row', alignItems: 'center', marginTop: 4, paddingVertical: 4 },
+  addSlotText: { color: '#3b82f6', fontSize: 14, fontWeight: '500', marginLeft: 4 },
+
   footer: { backgroundColor: '#ffffff', padding: 16, borderTopWidth: 1, borderTopColor: '#e2e8f0' },
   saveBtn: { backgroundColor: '#3b82f6', borderRadius: 8, padding: 16, flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
   saveBtnText: { color: '#ffffff', fontSize: 16, fontWeight: 'bold' }
