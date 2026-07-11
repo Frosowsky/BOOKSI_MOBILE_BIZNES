@@ -5,7 +5,14 @@ import { AuthProvider } from './src/context/AuthContext';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { ThemeProvider } from './src/context/ThemeContext';
 
-export default function App() {
+import * as Sentry from '@sentry/react-native';
+
+Sentry.init({
+  dsn: "https://dummy@sentry.io/1234567", // TODO: Replace with real DSN
+  tracesSampleRate: 1.0,
+});
+
+function App() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
@@ -19,6 +26,8 @@ export default function App() {
     </SafeAreaProvider>
   );
 }
+
+export default Sentry.wrap(App);
 
 const styles = StyleSheet.create({
   container: {
