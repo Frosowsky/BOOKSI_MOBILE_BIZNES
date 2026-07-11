@@ -11,6 +11,8 @@ interface AuthContextData {
   userRole: Role;
   salonId: string | null;
   tenantId: string | null;
+  isSetupCompleted: boolean;
+  setIsSetupCompleted: (val: boolean) => void;
   signIn: (token: string, refreshToken: string, salonId: string, tenantId: string) => Promise<void>;
   signOut: () => Promise<void>;
   enableBiometric: (token: string, refreshToken: string) => Promise<void>;
@@ -23,6 +25,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
   const [userRole, setUserRole] = useState<Role>(null);
   const [salonId, setSalonId] = useState<string | null>(null);
   const [tenantId, setTenantId] = useState<string | null>(null);
+  const [isSetupCompleted, setIsSetupCompleted] = useState<boolean>(true);
 
   useEffect(() => {
     const bootstrapAsync = async () => {
@@ -36,6 +39,18 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
           setUserRole(storedRole);
           setSalonId(storedSalonId);
           setTenantId(storedTenantId);
+          
+          if (storedRole === 'SalonOwner') {
+            try {
+              const res = await api.get('/Salons/me');
+              if (res.data && res.data.isSetupCompleted !== undefined) {
+                setIsSetupCompleted(res.data.isSetupCompleted);
+                await AsyncStorage.setItem('isSetupCompleted', res.data.isSetupCompleted.toString());
+              }
+            } catch (err) {
+              console.log('Failed to fetch setup status', err);
+            }
+          }
         }
       } catch (e) {
         console.error('Restoring token failed', e);
@@ -87,6 +102,18 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       setUserRole(role);
       setSalonId(newSalonId);
       setTenantId(newTenantId);
+
+      if (role === 'SalonOwner') {
+        try {
+          const res = await api.get('/Salons/me');
+          if (res.data && res.data.isSetupCompleted !== undefined) {
+            setIsSetupCompleted(res.data.isSetupCompleted);
+            await AsyncStorage.setItem('isSetupCompleted', res.data.isSetupCompleted.toString());
+          }
+        } catch (err) {
+          console.log('Failed to fetch setup status during signIn', err);
+        }
+      }
     } catch (e) {
       console.error('SignIn error', e);
     }
@@ -111,7 +138,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
   };
 
   return (
-    <AuthContext.Provider value={{ isLoading, userRole, salonId, tenantId, signIn, signOut, enableBiometric }}>
+    <AuthContext.Provider value={{ isLoading, userRole, salonId, tenantId, isSetupCompleted, setIsSetupCompleted, signIn, signOut, enableBiometric }}>
       {children}
     </AuthContext.Provider>
   );

@@ -7,6 +7,7 @@ import { useThemeColors } from '../theme/useThemeColors';
 
 import { useAuth } from '../context/AuthContext';
 import { LoginScreen } from '../screens/Auth/LoginScreen';
+import { SetupWizardNavigator } from './SetupWizardNavigator';
 import { OwnerDashboard } from '../screens/Owner/OwnerDashboard';
 import { EmployeeDashboard } from '../screens/Employee/EmployeeDashboard';
 import { SalespersonDashboard } from '../screens/Sales/SalespersonDashboard';
@@ -38,6 +39,7 @@ export type RootStackParamList = {
   Waitlist: undefined;
   Statistics: undefined;
   Settings: undefined;
+  SetupWizard: undefined;
   EmployeeSchedule: { employeeId: string; employeeName: string };
 };
 
@@ -156,7 +158,7 @@ const SalespersonNavigator = () => {
 };
 
 export const RootNavigator = () => {
-  const { userRole, isLoading } = useAuth();
+  const { userRole, isLoading, isSetupCompleted } = useAuth();
   const { isDark, colors } = useThemeColors();
 
   if (isLoading) {
@@ -184,14 +186,20 @@ export const RootNavigator = () => {
           <>
             {userRole === 'SalonOwner' && (
               <>
-                <Stack.Screen name="OwnerApp" component={OwnerNavigator} />
-                <Stack.Screen name="Marketing" component={MarketingScreen} />
-                <Stack.Screen name="Messages" component={MessagesScreen} />
-                <Stack.Screen name="LoyaltyCards" component={LoyaltyCardsScreen} />
-                <Stack.Screen name="Waitlist" component={WaitlistScreen} />
-                <Stack.Screen name="Statistics" component={StatisticsScreen} />
-                <Stack.Screen name="Settings" component={SettingsScreen} />
-                <Stack.Screen name="EmployeeSchedule" component={EmployeeScheduleScreen} />
+                {!isSetupCompleted ? (
+                  <Stack.Screen name="SetupWizard" component={SetupWizardNavigator} />
+                ) : (
+                  <>
+                    <Stack.Screen name="OwnerApp" component={OwnerNavigator} />
+                    <Stack.Screen name="Marketing" component={MarketingScreen} />
+                    <Stack.Screen name="Messages" component={MessagesScreen} />
+                    <Stack.Screen name="LoyaltyCards" component={LoyaltyCardsScreen} />
+                    <Stack.Screen name="Waitlist" component={WaitlistScreen} />
+                    <Stack.Screen name="Statistics" component={StatisticsScreen} />
+                    <Stack.Screen name="Settings" component={SettingsScreen} />
+                    <Stack.Screen name="EmployeeSchedule" component={EmployeeScheduleScreen} />
+                  </>
+                )}
               </>
             )}
             {userRole === 'SalonEmployee' && (
