@@ -29,6 +29,7 @@ export const ClientsScreen = () => {
   // Search & Sort state
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'visits'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   const fetchClients = async () => {
     try {
@@ -93,6 +94,15 @@ export const ClientsScreen = () => {
     });
   };
 
+  const handleSortToggle = (type: 'name' | 'visits') => {
+    if (sortBy === type) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(type);
+      setSortOrder('asc');
+    }
+  };
+
   const processedClients = useMemo(() => {
     let filtered = clients.filter(c => {
       const q = searchQuery.toLowerCase();
@@ -103,15 +113,16 @@ export const ClientsScreen = () => {
     });
 
     return filtered.sort((a, b) => {
+      const multiplier = sortOrder === 'asc' ? 1 : -1;
       if (sortBy === 'name') {
         const nameA = `${a.firstName} ${a.lastName}`.toLowerCase();
         const nameB = `${b.firstName} ${b.lastName}`.toLowerCase();
-        return nameA.localeCompare(nameB);
+        return nameA.localeCompare(nameB) * multiplier;
       } else {
-        return b.visitsCount - a.visitsCount;
+        return (a.visitsCount - b.visitsCount) * multiplier;
       }
     });
-  }, [clients, searchQuery, sortBy]);
+  }, [clients, searchQuery, sortBy, sortOrder]);
 
   const renderItem = ({ item }: { item: ClientDto }) => {
     return (
@@ -185,16 +196,16 @@ export const ClientsScreen = () => {
           <Text style={styles.sortLabel}>Sortuj:</Text>
           <TouchableOpacity 
             style={[styles.sortBtn, sortBy === 'name' && styles.sortBtnActive]} 
-            onPress={() => setSortBy('name')}
+            onPress={() => handleSortToggle('name')}
           >
-            <ArrowDownAZ size={14} color={sortBy === 'name' ? '#ffffff' : '#64748b'} style={{marginRight: 4}} />
+            <ArrowDownAZ size={14} color={sortBy === 'name' ? '#ffffff' : '#64748b'} style={{marginRight: 4, transform: [{rotate: sortBy === 'name' && sortOrder === 'desc' ? '180deg' : '0deg'}]}} />
             <Text style={[styles.sortText, sortBy === 'name' && styles.sortTextActive]}>Alfabetycznie</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.sortBtn, sortBy === 'visits' && styles.sortBtnActive]} 
-            onPress={() => setSortBy('visits')}
+            onPress={() => handleSortToggle('visits')}
           >
-            <ArrowDown01 size={14} color={sortBy === 'visits' ? '#ffffff' : '#64748b'} style={{marginRight: 4}} />
+            <ArrowDown01 size={14} color={sortBy === 'visits' ? '#ffffff' : '#64748b'} style={{marginRight: 4, transform: [{rotate: sortBy === 'visits' && sortOrder === 'desc' ? '180deg' : '0deg'}]}} />
             <Text style={[styles.sortText, sortBy === 'visits' && styles.sortTextActive]}>Wg Wizyt</Text>
           </TouchableOpacity>
         </View>

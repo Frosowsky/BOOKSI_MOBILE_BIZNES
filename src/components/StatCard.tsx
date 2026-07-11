@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { LucideIcon } from 'lucide-react-native';
+import { useThemeColors } from '../theme/useThemeColors';
 
 interface StatCardProps {
   title: string;
@@ -19,30 +20,29 @@ export const StatCard: React.FC<StatCardProps> = ({
   trendPositive = true,
   color = '#3b82f6' 
 }) => {
+  const { colors, isDark } = useThemeColors();
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { backgroundColor: colors.surface, shadowColor: colors.cardShadow }]}>
       <View style={styles.header}>
         <View style={[styles.iconContainer, { backgroundColor: `${color}15` }]}>
           <Icon size={20} color={color} />
         </View>
         {trend && (
-          <Text style={[styles.trend, { color: trendPositive ? '#10b981' : '#ef4444' }]}>
+          <Text style={[styles.trend, { color: trendPositive ? colors.success : colors.error }]}>
             {trendPositive ? '+' : ''}{trend}
           </Text>
         )}
       </View>
-      <Text style={styles.value}>{value}</Text>
-      <Text style={styles.title}>{title}</Text>
+      <Text style={[styles.value, { color: colors.text }]}>{value}</Text>
+      <Text style={[styles.title, { color: colors.textMuted }]}>{title}</Text>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#ffffff',
     borderRadius: 16,
     padding: 16,
-    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.05,
     shadowRadius: 12,
@@ -71,12 +71,10 @@ const styles = StyleSheet.create({
   value: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#0f172a',
     marginBottom: 4,
   },
   title: {
     fontSize: 13,
-    color: '#64748b',
     fontWeight: '500',
   },
 });

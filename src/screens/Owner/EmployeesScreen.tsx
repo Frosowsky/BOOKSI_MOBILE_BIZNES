@@ -33,6 +33,7 @@ export const EmployeesScreen = () => {
   // Search & Sort state
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'lastName' | 'firstName'>('lastName');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   const fetchEmployees = useCallback(async () => {
     try {
@@ -107,6 +108,15 @@ export const EmployeesScreen = () => {
     );
   }, [fetchEmployees]);
 
+  const handleSortToggle = (type: 'lastName' | 'firstName') => {
+    if (sortBy === type) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(type);
+      setSortOrder('asc');
+    }
+  };
+
   const processedEmployees = useMemo(() => {
     let filtered = employees.filter(e => {
       const q = searchQuery.toLowerCase();
@@ -117,17 +127,18 @@ export const EmployeesScreen = () => {
     });
 
     return filtered.sort((a, b) => {
+      const multiplier = sortOrder === 'asc' ? 1 : -1;
       if (sortBy === 'lastName') {
         const nameA = `${a.lastName} ${a.firstName}`.toLowerCase();
         const nameB = `${b.lastName} ${b.firstName}`.toLowerCase();
-        return nameA.localeCompare(nameB);
+        return nameA.localeCompare(nameB) * multiplier;
       } else {
         const nameA = `${a.firstName} ${a.lastName}`.toLowerCase();
         const nameB = `${b.firstName} ${b.lastName}`.toLowerCase();
-        return nameA.localeCompare(nameB);
+        return nameA.localeCompare(nameB) * multiplier;
       }
     });
-  }, [employees, searchQuery, sortBy]);
+  }, [employees, searchQuery, sortBy, sortOrder]);
 
   const renderItem = useCallback(({ item }: { item: EmployeeDto }) => {
     return (
@@ -204,16 +215,16 @@ export const EmployeesScreen = () => {
           <Text style={styles.sortLabel}>Sortuj:</Text>
           <TouchableOpacity 
             style={[styles.sortBtn, sortBy === 'lastName' && styles.sortBtnActive]} 
-            onPress={() => setSortBy('lastName')}
+            onPress={() => handleSortToggle('lastName')}
           >
-            <ArrowDownAZ size={14} color={sortBy === 'lastName' ? '#ffffff' : '#64748b'} style={{marginRight: 4}} />
+            <ArrowDownAZ size={14} color={sortBy === 'lastName' ? '#ffffff' : '#64748b'} style={{marginRight: 4, transform: [{rotate: sortBy === 'lastName' && sortOrder === 'desc' ? '180deg' : '0deg'}]}} />
             <Text style={[styles.sortText, sortBy === 'lastName' && styles.sortTextActive]}>Po Nazwisku</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.sortBtn, sortBy === 'firstName' && styles.sortBtnActive]} 
-            onPress={() => setSortBy('firstName')}
+            onPress={() => handleSortToggle('firstName')}
           >
-            <ArrowDownAZ size={14} color={sortBy === 'firstName' ? '#ffffff' : '#64748b'} style={{marginRight: 4}} />
+            <ArrowDownAZ size={14} color={sortBy === 'firstName' ? '#ffffff' : '#64748b'} style={{marginRight: 4, transform: [{rotate: sortBy === 'firstName' && sortOrder === 'desc' ? '180deg' : '0deg'}]}} />
             <Text style={[styles.sortText, sortBy === 'firstName' && styles.sortTextActive]}>Po Imieniu</Text>
           </TouchableOpacity>
         </View>

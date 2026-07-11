@@ -1,12 +1,15 @@
 import React, { useEffect, useState, useCallback, memo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl, Alert } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
-import { LogOut, TrendingUp, Users, Calendar as CalendarIcon, Clock, Megaphone, MessageSquare, CreditCard, ClipboardList, BarChart2 } from 'lucide-react-native';
+import { LogOut, TrendingUp, Users, Calendar as CalendarIcon, Clock, Megaphone, MessageSquare, CreditCard, ClipboardList, BarChart2, Settings } from 'lucide-react-native';
 import api from '../../api/client';
 import { StatCard } from '../../components/StatCard';
+import { CallerIdService } from '../../services/CallerIdService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useThemeColors } from '../../theme/useThemeColors';
 
 interface Stats {
   revenueToday: number;
@@ -30,23 +33,24 @@ interface EmployeeSchedule {
 }
 
 const EmployeeCard = memo(({ emp }: { emp: EmployeeSchedule }) => {
+  const { colors, isDark } = useThemeColors();
   return (
-    <View style={styles.employeeCard}>
-      <Text style={styles.employeeName}>{emp.employeeName}</Text>
+    <View style={[styles.employeeCard, { backgroundColor: colors.surface, shadowColor: colors.cardShadow }]}>
+      <Text style={[styles.employeeName, { color: colors.text }]}>{emp.employeeName}</Text>
       {emp.tasks.length === 0 ? (
-        <Text style={styles.noTasks}>Brak wizyt na dziś</Text>
+        <Text style={[styles.noTasks, { color: colors.textMuted }]}>Brak wizyt na dziś</Text>
       ) : (
         emp.tasks.map(task => (
-          <View key={task.id} style={styles.taskItem}>
+          <View key={task.id} style={[styles.taskItem, { borderTopColor: colors.border }]}>
             <View style={styles.taskTimeBox}>
-              <Clock size={14} color="#64748b" style={{marginRight: 4}}/>
-              <Text style={styles.taskTime}>{task.time}</Text>
+              <Clock size={14} color={colors.textMuted} style={{marginRight: 4}}/>
+              <Text style={[styles.taskTime, { color: colors.textMuted }]}>{task.time}</Text>
             </View>
             <View style={styles.taskInfo}>
-              <Text style={styles.taskTitle}>{task.title}</Text>
-              {task.client && <Text style={styles.taskClient}>{task.client}</Text>}
+              <Text style={[styles.taskTitle, { color: colors.text }]}>{task.title}</Text>
+              {task.client && <Text style={[styles.taskClient, { color: colors.textMuted }]}>{task.client}</Text>}
             </View>
-            <Text style={styles.taskDuration}>{task.duration} min</Text>
+            <Text style={[styles.taskDuration, { color: colors.textMuted }]}>{task.duration} min</Text>
           </View>
         ))
       )}
@@ -55,6 +59,7 @@ const EmployeeCard = memo(({ emp }: { emp: EmployeeSchedule }) => {
 });
 
 export const OwnerDashboard = () => {
+  const { colors, isDark } = useThemeColors();
   const { signOut } = useAuth();
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
   const [stats, setStats] = useState<Stats | null>(null);
@@ -85,73 +90,99 @@ export const OwnerDashboard = () => {
     const init = async () => {
       setLoading(true);
       await fetchData();
+
+      // Check caller id local settings and start service if enabled
+      try {
+        const callerIdStr = await AsyncStorage.getItem('@caller_id_enabled');
+        if (callerIdStr === 'true') {
+          CallerIdService.startListening((client) => {
+             Alert.alert('Dzwoni klient', `Dzwoni klient salonu: ${client.firstName} ${client.lastName} (${client.phone})`);
+             // W pełnej wersji nawigacja do karty klienta
+             // navigation.navigate('ClientDetails', { clientId: client.id });
+          });
+        }
+      } catch(err) {
+        console.error('Error fetching local settings for caller id', err);
+      }
+
       setLoading(false);
     };
     init();
+
+    return () => {
+      CallerIdService.stopListening();
+    };
   }, []);
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, styles.center]}>
-        <ActivityIndicator size="large" color="#3b82f6" />
+      <SafeAreaView style={[styles.container, styles.center, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Panel Właściciela</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+        <Text style={[styles.title, { color: colors.text }]}>Panel Właściciela</Text>
         <TouchableOpacity onPress={signOut}>
-          <LogOut color="#ef4444" size={24} />
+          <LogOut color={colors.error} size={24} />
         </TouchableOpacity>
       </View>
       <ScrollView 
         contentContainerStyle={styles.content}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.sectionTitle}>Narzędzia</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Narzędzia</Text>
         <View style={styles.toolsGrid}>
           <TouchableOpacity style={styles.toolTile} onPress={() => navigation.navigate('Marketing')}>
-            <View style={[styles.iconWrapper, { backgroundColor: '#eff6ff' }]}>
-              <Megaphone size={24} color="#3b82f6" />
+            <View style={[styles.iconWrapper, { backgroundColor: isDark ? '#1e3a8a' : '#eff6ff' }]}>
+              <Megaphone size={24} color={isDark ? '#93c5fd' : '#3b82f6'} />
             </View>
-            <Text style={styles.toolTitle}>Marketing</Text>
+            <Text style={[styles.toolTitle, { color: colors.textMuted }]}>Marketing</Text>
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.toolTile} onPress={() => navigation.navigate('Messages')}>
-            <View style={[styles.iconWrapper, { backgroundColor: '#f0fdf4' }]}>
-              <MessageSquare size={24} color="#10b981" />
+            <View style={[styles.iconWrapper, { backgroundColor: isDark ? '#064e3b' : '#f0fdf4' }]}>
+              <MessageSquare size={24} color={isDark ? '#6ee7b7' : '#10b981'} />
             </View>
-            <Text style={styles.toolTitle}>Wiadomości</Text>
+            <Text style={[styles.toolTitle, { color: colors.textMuted }]}>Wiadomości</Text>
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.toolTile} onPress={() => navigation.navigate('LoyaltyCards')}>
-            <View style={[styles.iconWrapper, { backgroundColor: '#fef3c7' }]}>
-              <CreditCard size={24} color="#f59e0b" />
+            <View style={[styles.iconWrapper, { backgroundColor: isDark ? '#78350f' : '#fef3c7' }]}>
+              <CreditCard size={24} color={isDark ? '#fcd34d' : '#f59e0b'} />
             </View>
-            <Text style={styles.toolTitle}>Lojalność</Text>
+            <Text style={[styles.toolTitle, { color: colors.textMuted }]}>Lojalność</Text>
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.toolTile} onPress={() => navigation.navigate('Waitlist')}>
-            <View style={[styles.iconWrapper, { backgroundColor: '#fce7f3' }]}>
-              <ClipboardList size={24} color="#ec4899" />
+            <View style={[styles.iconWrapper, { backgroundColor: isDark ? '#831843' : '#fce7f3' }]}>
+              <ClipboardList size={24} color={isDark ? '#f9a8d4' : '#ec4899'} />
             </View>
-            <Text style={styles.toolTitle}>Rezerwy</Text>
+            <Text style={[styles.toolTitle, { color: colors.textMuted }]}>Rezerwy</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.toolTile} onPress={() => navigation.navigate('Statistics')}>
-            <View style={[styles.iconWrapper, { backgroundColor: '#f3e8ff' }]}>
-              <BarChart2 size={24} color="#8b5cf6" />
+            <View style={[styles.iconWrapper, { backgroundColor: isDark ? '#4c1d95' : '#f3e8ff' }]}>
+              <BarChart2 size={24} color={isDark ? '#c4b5fd' : '#8b5cf6'} />
             </View>
-            <Text style={styles.toolTitle}>Statystyki</Text>
+            <Text style={[styles.toolTitle, { color: colors.textMuted }]}>Statystyki</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.toolTile} onPress={() => navigation.navigate('Settings')}>
+            <View style={[styles.iconWrapper, { backgroundColor: isDark ? '#334155' : '#e2e8f0' }]}>
+              <Settings size={24} color={isDark ? '#cbd5e1' : '#475569'} />
+            </View>
+            <Text style={[styles.toolTitle, { color: colors.textMuted }]}>Ustawienia</Text>
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.sectionTitle}>Dzisiejsze podsumowanie</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Dzisiejsze podsumowanie</Text>
         <View style={styles.statsRow}>
           <StatCard 
             title="Przychód dziś" 
@@ -175,7 +206,7 @@ export const OwnerDashboard = () => {
           />
         </View>
 
-        <Text style={styles.sectionTitle}>Grafik na dziś</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Grafik na dziś</Text>
         {schedules.map((emp) => (
           <EmployeeCard key={emp.employeeId} emp={emp} />
         ))}
@@ -188,7 +219,6 @@ export const OwnerDashboard = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
   },
   center: {
     justifyContent: 'center',
@@ -198,14 +228,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     padding: 20,
-    backgroundColor: '#ffffff',
     borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
   },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#0f172a',
   },
   content: {
     padding: 16,
@@ -213,7 +240,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1e293b',
     marginTop: 16,
     marginBottom: 12,
   },
@@ -239,7 +265,6 @@ const styles = StyleSheet.create({
   },
   toolTitle: {
     fontSize: 12,
-    color: '#475569',
     fontWeight: '500',
     textAlign: 'center',
   },
@@ -248,11 +273,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   employeeCard: {
-    backgroundColor: '#ffffff',
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
@@ -261,11 +284,9 @@ const styles = StyleSheet.create({
   employeeName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#0f172a',
     marginBottom: 12,
   },
   noTasks: {
-    color: '#94a3b8',
     fontStyle: 'italic',
   },
   taskItem: {
@@ -273,7 +294,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
   },
   taskTimeBox: {
     flexDirection: 'row',
@@ -283,7 +303,6 @@ const styles = StyleSheet.create({
   taskTime: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#475569',
   },
   taskInfo: {
     flex: 1,
@@ -291,16 +310,13 @@ const styles = StyleSheet.create({
   taskTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1e293b',
   },
   taskClient: {
     fontSize: 13,
-    color: '#64748b',
     marginTop: 2,
   },
   taskDuration: {
     fontSize: 13,
-    color: '#94a3b8',
     fontWeight: '500',
   }
 });

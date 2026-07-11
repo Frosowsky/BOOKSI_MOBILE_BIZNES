@@ -1,8 +1,9 @@
 import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Calendar, Users, Activity, PlusCircle, UserCog, Scissors, Building } from 'lucide-react-native';
+import { useThemeColors } from '../theme/useThemeColors';
 
 import { useAuth } from '../context/AuthContext';
 import { LoginScreen } from '../screens/Auth/LoginScreen';
@@ -23,6 +24,8 @@ import { WaitlistScreen } from '../screens/Owner/WaitlistScreen';
 import { StatisticsScreen } from '../screens/Owner/StatisticsScreen';
 import { EmployeeScheduleScreen } from '../screens/Owner/EmployeeScheduleScreen';
 
+import { SettingsScreen } from '../screens/Owner/SettingsScreen';
+
 export type RootStackParamList = {
   Login: undefined;
   OwnerApp: undefined;
@@ -34,6 +37,7 @@ export type RootStackParamList = {
   LoyaltyCards: undefined;
   Waitlist: undefined;
   Statistics: undefined;
+  Settings: undefined;
   EmployeeSchedule: { employeeId: string; employeeName: string };
 };
 
@@ -41,8 +45,14 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
 
 const OwnerNavigator = () => {
+  const { colors } = useThemeColors();
   return (
-    <Tab.Navigator screenOptions={{ headerShown: false, tabBarActiveTintColor: '#0f172a' }}>
+    <Tab.Navigator screenOptions={{ 
+      headerShown: false, 
+      tabBarActiveTintColor: colors.tabBarActive,
+      tabBarInactiveTintColor: colors.tabBarInactive,
+      tabBarStyle: { backgroundColor: colors.tabBar, borderTopColor: colors.border }
+    }}>
       <Tab.Screen 
         name="OwnerHome" 
         component={OwnerDashboard} 
@@ -88,8 +98,14 @@ const OwnerNavigator = () => {
 };
 
 const EmployeeNavigator = () => {
+  const { colors } = useThemeColors();
   return (
-    <Tab.Navigator screenOptions={{ headerShown: false, tabBarActiveTintColor: '#0f172a' }}>
+    <Tab.Navigator screenOptions={{ 
+      headerShown: false, 
+      tabBarActiveTintColor: colors.tabBarActive,
+      tabBarInactiveTintColor: colors.tabBarInactive,
+      tabBarStyle: { backgroundColor: colors.tabBar, borderTopColor: colors.border }
+    }}>
       <Tab.Screen 
         name="EmployeeHome" 
         component={EmployeeDashboard} 
@@ -111,8 +127,14 @@ const EmployeeNavigator = () => {
 };
 
 const SalespersonNavigator = () => {
+  const { colors } = useThemeColors();
   return (
-    <Tab.Navigator screenOptions={{ headerShown: false, tabBarActiveTintColor: '#0f172a' }}>
+    <Tab.Navigator screenOptions={{ 
+      headerShown: false, 
+      tabBarActiveTintColor: colors.tabBarActive,
+      tabBarInactiveTintColor: colors.tabBarInactive,
+      tabBarStyle: { backgroundColor: colors.tabBar, borderTopColor: colors.border }
+    }}>
       <Tab.Screen 
         name="SalesHome" 
         component={SalespersonDashboard} 
@@ -135,13 +157,26 @@ const SalespersonNavigator = () => {
 
 export const RootNavigator = () => {
   const { userRole, isLoading } = useAuth();
+  const { isDark, colors } = useThemeColors();
 
   if (isLoading) {
     return null;
   }
 
+  const MyTheme = {
+    ...isDark ? DarkTheme : DefaultTheme,
+    colors: {
+      ...(isDark ? DarkTheme.colors : DefaultTheme.colors),
+      background: colors.background,
+      card: colors.surface,
+      text: colors.text,
+      border: colors.border,
+      primary: colors.primary,
+    },
+  };
+
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={MyTheme}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!userRole ? (
           <Stack.Screen name="Login" component={LoginScreen} />
@@ -155,6 +190,7 @@ export const RootNavigator = () => {
                 <Stack.Screen name="LoyaltyCards" component={LoyaltyCardsScreen} />
                 <Stack.Screen name="Waitlist" component={WaitlistScreen} />
                 <Stack.Screen name="Statistics" component={StatisticsScreen} />
+                <Stack.Screen name="Settings" component={SettingsScreen} />
                 <Stack.Screen name="EmployeeSchedule" component={EmployeeScheduleScreen} />
               </>
             )}

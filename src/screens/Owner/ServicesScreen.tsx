@@ -46,6 +46,7 @@ export const ServicesScreen = () => {
   // Search & Sort state
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'category' | 'name'>('category');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   const fetchData = async () => {
     try {
@@ -165,6 +166,15 @@ export const ServicesScreen = () => {
     setServiceModalVisible(true);
   };
 
+  const handleSortToggle = (type: 'category' | 'name') => {
+    if (sortBy === type) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(type);
+      setSortOrder('asc');
+    }
+  };
+
   const filteredServices = useMemo(() => {
     const q = searchQuery.toLowerCase();
     if (!q) return services;
@@ -173,16 +183,20 @@ export const ServicesScreen = () => {
 
   const groupedData = useMemo(() => {
     if (sortBy === 'name') return [];
-    return categories.map(cat => ({
+    const multiplier = sortOrder === 'asc' ? 1 : -1;
+    const sortedCategories = [...categories].sort((a, b) => a.name.localeCompare(b.name) * multiplier);
+    
+    return sortedCategories.map(cat => ({
       category: cat,
       services: filteredServices.filter(s => s.categoryId === cat.id)
     })).filter(g => g.services.length > 0 || !searchQuery);
-  }, [categories, filteredServices, sortBy, searchQuery]);
+  }, [categories, filteredServices, sortBy, searchQuery, sortOrder]);
 
   const sortedFlatServices = useMemo(() => {
     if (sortBy === 'category') return [];
-    return [...filteredServices].sort((a, b) => a.name.localeCompare(b.name));
-  }, [filteredServices, sortBy]);
+    const multiplier = sortOrder === 'asc' ? 1 : -1;
+    return [...filteredServices].sort((a, b) => a.name.localeCompare(b.name) * multiplier);
+  }, [filteredServices, sortBy, sortOrder]);
 
   const renderServiceCard = useCallback((srv: ServiceDto) => (
     <View key={srv.id} style={styles.card}>
@@ -267,16 +281,16 @@ export const ServicesScreen = () => {
           <Text style={styles.sortLabel}>Sortuj:</Text>
           <TouchableOpacity 
             style={[styles.sortBtn, sortBy === 'category' && styles.sortBtnActive]} 
-            onPress={() => setSortBy('category')}
+            onPress={() => handleSortToggle('category')}
           >
             <LayoutList size={14} color={sortBy === 'category' ? '#ffffff' : '#64748b'} style={{marginRight: 4}} />
             <Text style={[styles.sortText, sortBy === 'category' && styles.sortTextActive]}>Kategoriami</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.sortBtn, sortBy === 'name' && styles.sortBtnActive]} 
-            onPress={() => setSortBy('name')}
+            onPress={() => handleSortToggle('name')}
           >
-            <ArrowDownAZ size={14} color={sortBy === 'name' ? '#ffffff' : '#64748b'} style={{marginRight: 4}} />
+            <ArrowDownAZ size={14} color={sortBy === 'name' ? '#ffffff' : '#64748b'} style={{marginRight: 4, transform: [{rotate: sortBy === 'name' && sortOrder === 'desc' ? '180deg' : '0deg'}]}} />
             <Text style={[styles.sortText, sortBy === 'name' && styles.sortTextActive]}>Alfabetycznie</Text>
           </TouchableOpacity>
         </View>
