@@ -4,8 +4,10 @@ import api from '../../api/client';
 import { Calendar as CalendarIcon, Clock, User, Scissors, Check, X } from 'lucide-react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useThemeColors } from '../../theme/useThemeColors';
 
 export const NewAppointmentScreen = () => {
+  const { colors, isDark } = useThemeColors();
   const navigation = useNavigation();
   const route = useRoute<any>();
   const editAppointmentId = route.params?.editAppointmentId;
@@ -119,86 +121,97 @@ export const NewAppointmentScreen = () => {
           return (
             <TouchableOpacity 
               key={item.id} 
-              style={[styles.selectBtn, isSelected && styles.selectBtnActive]}
+              style={[
+                styles.selectBtn, 
+                { backgroundColor: isDark ? '#334155' : '#e2e8f0' },
+                isSelected && { backgroundColor: colors.primary }
+              ]}
               onPress={() => onSelect(item.id)}
             >
-              <Text style={[styles.selectBtnText, isSelected && styles.selectBtnTextActive]}>
+              <Text style={[
+                styles.selectBtnText, 
+                { color: isDark ? '#cbd5e1' : '#475569' },
+                isSelected && styles.selectBtnTextActive
+              ]}>
                 {label}
               </Text>
             </TouchableOpacity>
           );
         })}
-        {items.length === 0 && <Text style={styles.noItems}>Brak danych do wyboru</Text>}
+        {items.length === 0 && <Text style={[styles.noItems, { color: colors.textMuted }]}>Brak danych do wyboru</Text>}
       </View>
     );
   };
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, styles.center]}>
-        <ActivityIndicator size="large" color="#3b82f6" />
+      <SafeAreaView style={[styles.container, styles.center, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={{paddingRight: 10}}>
-          <X color="#0f172a" size={24} />
+          <X color={colors.text} size={24} />
         </TouchableOpacity>
-        <Text style={styles.title}>{editAppointmentId ? 'Edycja Wizyty' : 'Nowa Wizyta'}</Text>
+        <Text style={[styles.title, { color: colors.text }]}>{editAppointmentId ? 'Edycja Wizyty' : 'Nowa Wizyta'}</Text>
         <View style={{width: 24}}/>
       </View>
       <ScrollView contentContainerStyle={styles.content}>
 
-        <Text style={styles.label}><User size={16} color="#64748b"/> Wybierz Klienta</Text>
+        <Text style={[styles.label, { color: colors.text }]}><User size={16} color={colors.textMuted}/> Wybierz Klienta</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scrollSelect}>
           {renderSelection(clients, selectedClient, setSelectedClient, 'Wybierz klienta...')}
         </ScrollView>
 
-        <Text style={styles.label}><User size={16} color="#64748b"/> Wybierz Pracownika</Text>
+        <Text style={[styles.label, { color: colors.text }]}><User size={16} color={colors.textMuted}/> Wybierz Pracownika</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scrollSelect}>
           {renderSelection(employees, selectedEmployee, setSelectedEmployee, 'Wybierz pracownika...')}
         </ScrollView>
 
-        <Text style={styles.label}><Scissors size={16} color="#64748b"/> Wybierz Usługę</Text>
+        <Text style={[styles.label, { color: colors.text }]}><Scissors size={16} color={colors.textMuted}/> Wybierz Usługę</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scrollSelect}>
           {renderSelection(services, selectedService, setSelectedService, 'Wybierz usługę...')}
         </ScrollView>
 
         <View style={styles.row}>
           <View style={{flex: 1, marginRight: 8}}>
-            <Text style={styles.label}><CalendarIcon size={16} color="#64748b"/> Data (YYYY-MM-DD)</Text>
+            <Text style={[styles.label, { color: colors.text }]}><CalendarIcon size={16} color={colors.textMuted}/> Data (YYYY-MM-DD)</Text>
             <TextInput 
-              style={styles.input} 
+              style={[styles.input, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]} 
               value={dateStr}
               onChangeText={setDateStr}
               placeholder="np. 2024-12-01"
+              placeholderTextColor={colors.textMuted}
             />
           </View>
           <View style={{flex: 1, marginLeft: 8}}>
-            <Text style={styles.label}><Clock size={16} color="#64748b"/> Czas (HH:MM)</Text>
+            <Text style={[styles.label, { color: colors.text }]}><Clock size={16} color={colors.textMuted}/> Czas (HH:MM)</Text>
             <TextInput 
-              style={styles.input} 
+              style={[styles.input, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]} 
               value={timeStr}
               onChangeText={setTimeStr}
               placeholder="np. 14:30"
+              placeholderTextColor={colors.textMuted}
             />
           </View>
         </View>
 
-        <Text style={styles.label}>Dodatkowe Notatki</Text>
+        <Text style={[styles.label, { color: colors.text }]}>Dodatkowe Notatki</Text>
         <TextInput 
-          style={[styles.input, styles.textArea]} 
+          style={[styles.input, styles.textArea, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]} 
           value={notes}
           onChangeText={setNotes}
           placeholder="Opcjonalne notatki..."
+          placeholderTextColor={colors.textMuted}
           multiline
         />
 
         <TouchableOpacity 
-          style={styles.submitBtn} 
+          style={[styles.submitBtn, { backgroundColor: colors.primary }]} 
           onPress={handleSubmit} 
           disabled={submitting}
         >
