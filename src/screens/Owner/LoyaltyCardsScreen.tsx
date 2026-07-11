@@ -60,7 +60,7 @@ export const LoyaltyCardsScreen = () => {
     setIsEditing(true);
     setEditingId(reward.id);
     setName(reward.name);
-    setPointsRequired(reward.pointsRequired.toString());
+    setPointsRequired(reward.pointsRequired?.toString() ?? '10');
     setDescription(reward.description || '');
     setModalVisible(true);
   };

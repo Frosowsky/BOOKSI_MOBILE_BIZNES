@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert, RefreshControl } from 'react-native';
 import api from '../../api/client';
-import { Clock, User, Check, X, CheckCircle2, Plus } from 'lucide-react-native';
+import { Clock, User, Check, X, CheckCircle2, Plus, List } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
@@ -171,9 +171,14 @@ export const AppointmentsScreen = () => {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <Text style={[styles.title, { color: colors.text }]}>Lista Wizyt</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('NewAppointment')}>
-          <Plus color={colors.primary} size={28} />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity onPress={() => navigation.navigate('Waitlist')} style={{ marginRight: 16 }}>
+            <List color={colors.primary} size={28} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('NewAppointment')}>
+            <Plus color={colors.primary} size={28} />
+          </TouchableOpacity>
+        </View>
       </View>
       
       <Calendar

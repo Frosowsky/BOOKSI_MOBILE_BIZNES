@@ -1,156 +1,254 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert, Modal, TextInput, ScrollView } from 'react-native';
-import api from '../../api/client';
-import { CheckCircle2, XCircle, Clock, Plus, X, ArrowLeft, MoreHorizontal } from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { ChevronLeft, Clock, Calendar, User, X } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
-import { useThemeColors } from '../../theme/useThemeColors';
+import api from '../../api/client';
 
 interface WaitlistEntry {
   id: string;
   clientId: string;
-  clientName: string;
-  serviceId?: string;
-  requestedDate: string;
-  status: string; // Pending, Notified, Confirmed, Cancelled
-  notes?: string;
+  client: { firstName: string; lastName: string; phoneNumber?: string };
+  serviceId: string;
+  service: { name: string; price: number };
+  date: string;
+  timeStart: string;
+  timeEnd: string;
+  isNotified: boolean;
+  isExpired: boolean;
+  proposedDate?: string;
+  proposedTimeStart?: string;
+  proposedTimeEnd?: string;
 }
 
 export const WaitlistScreen = () => {
-  const { colors, isDark } = useThemeColors();
   const navigation = useNavigation();
   const [entries, setEntries] = useState<WaitlistEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchWaitlist = async () => {
+    setLoading(true);
     try {
       const res = await api.get('/Waitlist');
       setEntries(res.data);
-    } catch (e) {
-      console.error(e);
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Błąd', 'Nie udało się pobrać listy rezerwowej.');
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    const init = async () => {
-      setLoading(true);
-      await fetchWaitlist();
-      setLoading(false);
-    };
-    init();
+    fetchWaitlist();
   }, []);
 
-  const handleUpdateStatus = useCallback(async (id: string, newStatus: string) => {
-    try {
-      await api.put(`/Waitlist/${id}/status`, { status: newStatus });
-      await fetchWaitlist();
-    } catch (e) {
-      Alert.alert('Błąd', 'Nie udało się zmienić statusu.');
-    }
-  }, []);
-
-  const handleDelete = useCallback(async (id: string) => {
-    Alert.alert('Usuń', 'Czy chcesz usunąć z listy rezerwowej?', [
+  const handleDelete = (id: string) => {
+    Alert.alert('Potwierdzenie', 'Czy usunąć tego klienta z listy rezerwowej?', [
       { text: 'Anuluj', style: 'cancel' },
       { text: 'Usuń', style: 'destructive', onPress: async () => {
-          try {
-            await api.delete(`/Waitlist/${id}`);
-            await fetchWaitlist();
-          } catch(e) { Alert.alert('Błąd', 'Nie udało się usunąć'); }
+        try {
+          await api.delete(`/Waitlist/${id}`);
+          fetchWaitlist();
+        } catch (e) {
+          Alert.alert('Błąd', 'Nie udało się usunąć wpisu.');
+        }
       }}
     ]);
-  }, []);
-
-  const getStatusBadge = (status: string) => {
-    switch(status) {
-      case 'Pending': return { bg: '#fef3c7', text: '#d97706', label: 'Oczekujący' };
-      case 'Notified': return { bg: '#dbeafe', text: '#2563eb', label: 'Powiadomiony' };
-      case 'Confirmed': return { bg: '#dcfce7', text: '#166534', label: 'Zrealizowany' };
-      case 'Cancelled': return { bg: '#fee2e2', text: '#991b1b', label: 'Anulowany' };
-      default: return { bg: '#f1f5f9', text: '#475569', label: status };
-    }
   };
 
-  const renderItem = useCallback(({ item }: { item: WaitlistEntry }) => {
-    const badge = getStatusBadge(item.status);
+  const renderItem = ({ item }: { item: WaitlistEntry }) => {
+    const isProposed = !!item.proposedDate;
+    
     return (
-      <View style={[styles.card, { backgroundColor: colors.surface, shadowColor: colors.cardShadow }]}>
+      <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <Text style={[styles.name, { color: colors.text }]}>{item.clientName}</Text>
-          <View style={[styles.badge, { backgroundColor: badge.bg }]}>
-            <Text style={[styles.badgeText, { color: badge.text }]}>{badge.label}</Text>
+          <View style={styles.clientInfo}>
+            <User color="#4F46E5" size={20} />
+            <Text style={styles.clientName}>{item.client?.firstName} {item.client?.lastName}</Text>
           </View>
-        </View>
-        <Text style={[styles.dateText, { color: colors.textMuted }]}>Preferowana data: {new Date(item.requestedDate).toLocaleDateString()}</Text>
-        {item.notes && <Text style={[styles.notes, { color: colors.textMuted }]}>{item.notes}</Text>}
-        
-        <View style={[styles.actions, { borderTopColor: colors.border }]}>
-          {item.status === 'Pending' && (
-            <TouchableOpacity style={[styles.btn, styles.notifyBtn, { backgroundColor: isDark ? '#1e3a8a' : '#eff6ff', borderColor: isDark ? '#1e3a8a' : '#bfdbfe' }]} onPress={() => handleUpdateStatus(item.id, 'Notified')}>
-              <Text style={[styles.btnTextNotify, isDark && { color: '#93c5fd' }]}>Oznacz jako powiadomiony</Text>
-            </TouchableOpacity>
-          )}
-          {item.status === 'Notified' && (
-            <TouchableOpacity style={[styles.btn, styles.confirmBtn, { backgroundColor: isDark ? '#064e3b' : '#f0fdf4', borderColor: isDark ? '#064e3b' : '#bbf7d0' }]} onPress={() => handleUpdateStatus(item.id, 'Confirmed')}>
-              <Text style={[styles.btnTextConfirm, isDark && { color: '#86efac' }]}>Potwierdź rezerwację</Text>
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity style={[styles.btn, styles.cancelBtn, { backgroundColor: isDark ? '#7f1d1d' : '#fef2f2', borderColor: isDark ? '#7f1d1d' : '#fecaca' }]} onPress={() => handleDelete(item.id)}>
-            <Text style={[styles.btnTextCancel, isDark && { color: '#fca5a5' }]}>Usuń</Text>
+          <TouchableOpacity onPress={() => handleDelete(item.id)}>
+            <X color="#EF4444" size={24} />
           </TouchableOpacity>
         </View>
+
+        <Text style={styles.serviceName}>{item.service?.name}</Text>
+        
+        <View style={styles.detailsRow}>
+          <View style={styles.detailItem}>
+            <Calendar color="#6B7280" size={16} />
+            <Text style={styles.detailText}>{new Date(item.date).toLocaleDateString()}</Text>
+          </View>
+          <View style={styles.detailItem}>
+            <Clock color="#6B7280" size={16} />
+            <Text style={styles.detailText}>{item.timeStart.substring(0, 5)} - {item.timeEnd.substring(0, 5)}</Text>
+          </View>
+        </View>
+
+        {isProposed ? (
+          <View style={styles.proposedBox}>
+            <Text style={styles.proposedText}>Zaproponowano inny termin:</Text>
+            <Text style={styles.proposedValue}>
+              {new Date(item.proposedDate!).toLocaleDateString()} {item.proposedTimeStart?.substring(0, 5)}
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.actionsBox}>
+            <TouchableOpacity style={styles.proposeBtn} onPress={() => {
+                Alert.alert('Proponowanie', 'Ta funkcja otworzy formularz wyboru nowego terminu (wkrótce).');
+            }}>
+              <Text style={styles.proposeBtnText}>Zaproponuj Termin</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     );
-  }, [handleUpdateStatus, handleDelete, colors, isDark]);
-
-  if (loading) {
-    return (
-      <SafeAreaView style={[styles.container, styles.center, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </SafeAreaView>
-    );
-  }
+  };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={{marginRight: 16}}>
-          <ArrowLeft color={colors.text} size={24} />
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <ChevronLeft color="#1F2937" size={28} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: colors.text }]}>Lista Rezerwowa</Text>
+        <Text style={styles.title}>Lista Rezerwowa</Text>
+        <View style={{ width: 28 }} />
       </View>
 
-      <FlatList
-        data={entries}
-        keyExtractor={item => item.id}
-        renderItem={renderItem}
-        contentContainerStyle={styles.list}
-        ListEmptyComponent={<Text style={styles.emptyText}>Brak osób na liście rezerwowej.</Text>}
-      />
+      {loading ? (
+        <View style={styles.loader}>
+          <ActivityIndicator size="large" color="#4F46E5" />
+        </View>
+      ) : (
+        <FlatList
+          data={entries}
+          keyExtractor={item => item.id}
+          renderItem={renderItem}
+          contentContainerStyle={styles.listContent}
+          ListEmptyComponent={
+            <Text style={styles.emptyText}>Lista rezerwowa jest pusta.</Text>
+          }
+        />
+      )}
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
-  center: { justifyContent: 'center', alignItems: 'center' },
-  header: { flexDirection: 'row', alignItems: 'center', padding: 20, backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
-  title: { fontSize: 20, fontWeight: 'bold', color: '#0f172a' },
-  list: { padding: 16 },
-  card: { backgroundColor: '#ffffff', borderRadius: 12, padding: 16, marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  name: { fontSize: 16, fontWeight: 'bold', color: '#1e293b' },
-  badge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
-  badgeText: { fontSize: 12, fontWeight: '600' },
-  dateText: { fontSize: 14, color: '#475569', marginBottom: 4 },
-  notes: { fontSize: 13, color: '#64748b', fontStyle: 'italic', marginBottom: 12 },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12, borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 12 },
-  btn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, borderWidth: 1 },
-  notifyBtn: { backgroundColor: '#eff6ff', borderColor: '#bfdbfe' },
-  btnTextNotify: { color: '#2563eb', fontWeight: '500', fontSize: 13 },
-  confirmBtn: { backgroundColor: '#f0fdf4', borderColor: '#bbf7d0' },
-  btnTextConfirm: { color: '#16a34a', fontWeight: '500', fontSize: 13 },
-  cancelBtn: { backgroundColor: '#fef2f2', borderColor: '#fecaca' },
-  btnTextCancel: { color: '#dc2626', fontWeight: '500', fontSize: 13 },
-  emptyText: { textAlign: 'center', color: '#94a3b8', marginTop: 40 },
+  container: {
+    flex: 1,
+    backgroundColor: '#F3F4F6'
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB'
+  },
+  backBtn: {
+    padding: 4
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1F2937'
+  },
+  loader: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  listContent: {
+    padding: 16
+  },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12
+  },
+  clientInfo: {
+    flexDirection: 'row',
+    alignItems: 'center'
+  },
+  clientName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginLeft: 8
+  },
+  serviceName: {
+    fontSize: 15,
+    color: '#4F46E5',
+    fontWeight: '600',
+    marginBottom: 12
+  },
+  detailsRow: {
+    flexDirection: 'row',
+    marginBottom: 12
+  },
+  detailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 16
+  },
+  detailText: {
+    marginLeft: 6,
+    color: '#4B5563',
+    fontSize: 14
+  },
+  proposedBox: {
+    backgroundColor: '#FEF3C7',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 8
+  },
+  proposedText: {
+    color: '#D97706',
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginBottom: 4
+  },
+  proposedValue: {
+    color: '#92400E',
+    fontSize: 14,
+    fontWeight: 'bold'
+  },
+  actionsBox: {
+    marginTop: 8,
+    alignItems: 'flex-start'
+  },
+  proposeBtn: {
+    backgroundColor: '#F3F4F6',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB'
+  },
+  proposeBtnText: {
+    color: '#4B5563',
+    fontWeight: 'bold',
+    fontSize: 14
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: '#6B7280',
+    marginTop: 40,
+    fontSize: 16
+  }
 });

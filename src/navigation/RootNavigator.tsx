@@ -185,6 +185,9 @@ export const RootNavigator = () => {
             {userRole === 'SalonOwner' && (
               <>
                 <Stack.Screen name="OwnerApp" component={OwnerNavigator} />
+                <Stack.Screen name="EmployeeApp" component={EmployeeNavigator} />
+                <Stack.Screen name="SalespersonApp" component={SalespersonNavigator} />
+                <Stack.Screen name="NewAppointment" component={NewAppointmentScreen} options={{ presentation: 'modal' }} />
                 <Stack.Screen name="Marketing" component={MarketingScreen} />
                 <Stack.Screen name="Messages" component={MessagesScreen} />
                 <Stack.Screen name="LoyaltyCards" component={LoyaltyCardsScreen} />
