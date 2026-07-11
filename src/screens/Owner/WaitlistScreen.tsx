@@ -101,7 +101,7 @@ export const WaitlistScreen = () => {
         </View>
       </View>
     );
-  }, [handleUpdateStatus, handleDelete]);
+  }, [handleUpdateStatus, handleDelete, colors, isDark]);
 
   if (loading) {
     return (

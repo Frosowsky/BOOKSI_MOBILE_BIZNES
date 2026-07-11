@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, FlatList, ActivityIndicator, RefreshControl, To
 import api from '../../api/client';
 import { Clock, Plus, X, Trash2, Tag, Banknote, Edit3, Search, ArrowDownAZ, LayoutList } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useThemeColors } from '../../theme/useThemeColors';
 
 interface ServiceDto {
   id: string;
@@ -20,6 +21,7 @@ interface CategoryDto {
 }
 
 export const ServicesScreen = () => {
+  const { colors, isDark } = useThemeColors();
   const [services, setServices] = useState<ServiceDto[]>([]);
   const [categories, setCategories] = useState<CategoryDto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -199,99 +201,100 @@ export const ServicesScreen = () => {
   }, [filteredServices, sortBy, sortOrder]);
 
   const renderServiceCard = useCallback((srv: ServiceDto) => (
-    <View key={srv.id} style={styles.card}>
+    <View key={srv.id} style={[styles.card, { backgroundColor: colors.surface, shadowColor: colors.cardShadow }]}>
       <View style={{flex: 1}}>
-        <Text style={styles.name}>{srv.name}</Text>
-        {srv.description ? <Text style={styles.desc}>{srv.description}</Text> : null}
-        <View style={styles.footer}>
+        <Text style={[styles.name, { color: colors.text }]}>{srv.name}</Text>
+        {srv.description ? <Text style={[styles.desc, { color: colors.textMuted }]}>{srv.description}</Text> : null}
+        <View style={[styles.footer, { borderTopColor: colors.border }]}>
           <View style={styles.infoRow}>
-            <Clock size={14} color="#64748b" style={{marginRight: 4}} />
-            <Text style={styles.infoText}>{srv.durationMinutes} min</Text>
+            <Clock size={14} color={colors.textMuted} style={{marginRight: 4}} />
+            <Text style={[styles.infoText, { color: colors.textMuted }]}>{srv.durationMinutes} min</Text>
           </View>
           <View style={styles.infoRow}>
-            <Banknote size={14} color="#10b981" style={{marginRight: 4}} />
-            <Text style={styles.priceText}>{srv.price} PLN</Text>
+            <Banknote size={14} color={colors.success} style={{marginRight: 4}} />
+            <Text style={[styles.priceText, { color: colors.success }]}>{srv.price} PLN</Text>
           </View>
         </View>
       </View>
       <View style={styles.actions}>
-        <TouchableOpacity onPress={() => handleEditServiceInit(srv)} style={styles.iconBtn}>
-          <Edit3 color="#64748b" size={20} />
+        <TouchableOpacity onPress={() => handleEditServiceInit(srv)} style={[styles.iconBtn, { backgroundColor: colors.background }]}>
+          <Edit3 color={colors.textMuted} size={20} />
         </TouchableOpacity>
         <TouchableOpacity onPress={() => handleDeleteService(srv.id)} style={[styles.iconBtn, styles.deleteBtn]}>
-          <Trash2 color="#ef4444" size={20} />
+          <Trash2 color={colors.error} size={20} />
         </TouchableOpacity>
       </View>
     </View>
-  ), [handleDeleteService, handleEditServiceInit]);
+  ), [handleDeleteService, handleEditServiceInit, colors, isDark]);
 
   const renderCategory = useCallback(({ item }: { item: typeof groupedData[0] }) => (
     <View style={styles.categorySection}>
       <View style={styles.categoryHeader}>
-        <Tag color="#3b82f6" size={20} style={{marginRight: 8}} />
-        <Text style={styles.categoryTitle}>{item.category.name}</Text>
+        <Tag color={colors.primary} size={20} style={{marginRight: 8}} />
+        <Text style={[styles.categoryTitle, { color: colors.text }]}>{item.category.name}</Text>
       </View>
       {item.services.length === 0 ? (
-        <Text style={styles.emptyCatText}>Brak usług w tej kategorii</Text>
+        <Text style={[styles.emptyCatText, { color: colors.textMuted }]}>Brak usług w tej kategorii</Text>
       ) : (
         item.services.map(srv => renderServiceCard(srv))
       )}
     </View>
-  ), [renderServiceCard]);
+  ), [renderServiceCard, colors, isDark]);
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, styles.center]}>
-        <ActivityIndicator size="large" color="#3b82f6" />
+      <SafeAreaView style={[styles.container, styles.center, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Usługi Salonu</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+        <Text style={[styles.title, { color: colors.text }]}>Usługi Salonu</Text>
         <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.addButton} onPress={() => setCategoryModalVisible(true)}>
+          <TouchableOpacity style={[styles.addButton, { backgroundColor: colors.primary }]} onPress={() => setCategoryModalVisible(true)}>
             <Tag color="#ffffff" size={16} />
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.addButton, {marginLeft: 8}]} onPress={openNewServiceModal}>
+          <TouchableOpacity style={[styles.addButton, {marginLeft: 8, backgroundColor: colors.primary}]} onPress={openNewServiceModal}>
             <Plus color="#ffffff" size={16} />
             <Text style={styles.addButtonText}>Dodaj</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      <View style={styles.toolsContainer}>
-        <View style={styles.searchBox}>
-          <Search color="#94a3b8" size={20} />
+      <View style={[styles.toolsContainer, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+        <View style={[styles.searchBox, { backgroundColor: isDark ? '#334155' : '#f1f5f9' }]}>
+          <Search color={colors.textMuted} size={20} />
           <TextInput 
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: colors.text }]}
+            placeholderTextColor={colors.textMuted}
             placeholder="Szukaj usługi..."
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <X color="#94a3b8" size={16} />
+              <X color={colors.textMuted} size={16} />
             </TouchableOpacity>
           )}
         </View>
         <View style={styles.sortRow}>
-          <Text style={styles.sortLabel}>Sortuj:</Text>
+          <Text style={[styles.sortLabel, { color: colors.textMuted }]}>Sortuj:</Text>
           <TouchableOpacity 
-            style={[styles.sortBtn, sortBy === 'category' && styles.sortBtnActive]} 
+            style={[styles.sortBtn, { backgroundColor: isDark ? '#334155' : '#f1f5f9' }, sortBy === 'category' && { backgroundColor: colors.primary }]} 
             onPress={() => handleSortToggle('category')}
           >
-            <LayoutList size={14} color={sortBy === 'category' ? '#ffffff' : '#64748b'} style={{marginRight: 4}} />
-            <Text style={[styles.sortText, sortBy === 'category' && styles.sortTextActive]}>Kategoriami</Text>
+            <LayoutList size={14} color={sortBy === 'category' ? '#ffffff' : colors.textMuted} style={{marginRight: 4}} />
+            <Text style={[styles.sortText, { color: colors.textMuted }, sortBy === 'category' && styles.sortTextActive]}>Kategoriami</Text>
           </TouchableOpacity>
           <TouchableOpacity 
-            style={[styles.sortBtn, sortBy === 'name' && styles.sortBtnActive]} 
+            style={[styles.sortBtn, { backgroundColor: isDark ? '#334155' : '#f1f5f9' }, sortBy === 'name' && { backgroundColor: colors.primary }]} 
             onPress={() => handleSortToggle('name')}
           >
-            <ArrowDownAZ size={14} color={sortBy === 'name' ? '#ffffff' : '#64748b'} style={{marginRight: 4, transform: [{rotate: sortBy === 'name' && sortOrder === 'desc' ? '180deg' : '0deg'}]}} />
-            <Text style={[styles.sortText, sortBy === 'name' && styles.sortTextActive]}>Alfabetycznie</Text>
+            <ArrowDownAZ size={14} color={sortBy === 'name' ? '#ffffff' : colors.textMuted} style={{marginRight: 4, transform: [{rotate: sortBy === 'name' && sortOrder === 'desc' ? '180deg' : '0deg'}]}} />
+            <Text style={[styles.sortText, { color: colors.textMuted }, sortBy === 'name' && styles.sortTextActive]}>Alfabetycznie</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -330,15 +333,15 @@ export const ServicesScreen = () => {
       {/* Modal - Dodaj Kategorię */}
       <Modal visible={categoryModalVisible} animationType="fade" transparent={true}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Nowa Kategoria</Text>
-              <TouchableOpacity onPress={() => setCategoryModalVisible(false)}><X color="#64748b" size={24} /></TouchableOpacity>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>Nowa Kategoria</Text>
+              <TouchableOpacity onPress={() => setCategoryModalVisible(false)}><X color={colors.textMuted} size={24} /></TouchableOpacity>
             </View>
-            <Text style={styles.label}>Nazwa kategorii *</Text>
-            <TextInput style={styles.input} value={cName} onChangeText={setCName} placeholder="np. Strzyżenie" />
-            <Text style={styles.label}>Opis</Text>
-            <TextInput style={styles.input} value={cDesc} onChangeText={setCDesc} placeholder="Krótki opis" />
+            <Text style={[styles.label, { color: colors.text }]}>Nazwa kategorii *</Text>
+            <TextInput style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]} placeholderTextColor={colors.textMuted} value={cName} onChangeText={setCName} placeholder="np. Strzyżenie" />
+            <Text style={[styles.label, { color: colors.text }]}>Opis</Text>
+            <TextInput style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]} placeholderTextColor={colors.textMuted} value={cDesc} onChangeText={setCDesc} placeholder="Krótki opis" />
             <TouchableOpacity style={styles.submitBtn} onPress={handleAddCategory} disabled={submitting}>
               {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>Zapisz Kategorie</Text>}
             </TouchableOpacity>
@@ -349,37 +352,37 @@ export const ServicesScreen = () => {
       {/* Modal - Dodaj/Edytuj Usługę */}
       <Modal visible={serviceModalVisible} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>{isEditing ? 'Edytuj Usługę' : 'Nowa Usługa'}</Text>
-                <TouchableOpacity onPress={() => setServiceModalVisible(false)}><X color="#64748b" size={24} /></TouchableOpacity>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>{isEditing ? 'Edytuj Usługę' : 'Nowa Usługa'}</Text>
+                <TouchableOpacity onPress={() => setServiceModalVisible(false)}><X color={colors.textMuted} size={24} /></TouchableOpacity>
               </View>
               
-              <Text style={styles.label}>Wybierz Kategorie *</Text>
+              <Text style={[styles.label, { color: colors.text }]}>Wybierz Kategorie *</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{marginBottom: 16}}>
                 {categories.map(c => (
                   <TouchableOpacity 
                     key={c.id} 
-                    style={[styles.catPill, sCatId === c.id && styles.catPillActive]}
+                    style={[styles.catPill, { backgroundColor: colors.background, borderColor: colors.border }, sCatId === c.id && { backgroundColor: isDark ? '#1e3a8a' : '#eff6ff', borderColor: colors.primary }]}
                     onPress={() => setSCatId(c.id)}
                   >
-                    <Text style={[styles.catPillText, sCatId === c.id && styles.catPillTextActive]}>{c.name}</Text>
+                    <Text style={[styles.catPillText, { color: colors.textMuted }, sCatId === c.id && { color: isDark ? '#93c5fd' : '#3b82f6', fontWeight: 'bold' }]}>{c.name}</Text>
                   </TouchableOpacity>
                 ))}
               </ScrollView>
 
-              <Text style={styles.label}>Nazwa usługi *</Text>
-              <TextInput style={styles.input} value={sName} onChangeText={setSName} placeholder="np. Strzyżenie męskie" />
+              <Text style={[styles.label, { color: colors.text }]}>Nazwa usługi *</Text>
+              <TextInput style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]} placeholderTextColor={colors.textMuted} value={sName} onChangeText={setSName} placeholder="np. Strzyżenie męskie" />
               
-              <Text style={styles.label}>Cena (PLN) *</Text>
-              <TextInput style={styles.input} value={sPrice} onChangeText={setSPrice} keyboardType="numeric" />
+              <Text style={[styles.label, { color: colors.text }]}>Cena (PLN) *</Text>
+              <TextInput style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]} placeholderTextColor={colors.textMuted} value={sPrice} onChangeText={setSPrice} keyboardType="numeric" />
               
-              <Text style={styles.label}>Czas trwania (min) *</Text>
-              <TextInput style={styles.input} value={sDuration} onChangeText={setSDuration} keyboardType="numeric" />
+              <Text style={[styles.label, { color: colors.text }]}>Czas trwania (min) *</Text>
+              <TextInput style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]} placeholderTextColor={colors.textMuted} value={sDuration} onChangeText={setSDuration} keyboardType="numeric" />
               
-              <Text style={styles.label}>Opis</Text>
-              <TextInput style={styles.input} value={sDesc} onChangeText={setSDesc} placeholder="Opcjonalny opis" multiline />
+              <Text style={[styles.label, { color: colors.text }]}>Opis</Text>
+              <TextInput style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]} placeholderTextColor={colors.textMuted} value={sDesc} onChangeText={setSDesc} placeholder="Opcjonalny opis" multiline />
 
               <TouchableOpacity style={styles.submitBtn} onPress={handleSaveService} disabled={submitting}>
                 {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>Zapisz Usługę</Text>}

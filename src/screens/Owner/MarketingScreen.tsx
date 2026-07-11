@@ -4,6 +4,7 @@ import api from '../../api/client';
 import { Megaphone, Send, Plus, X, ArrowLeft } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { useThemeColors } from '../../theme/useThemeColors';
 
 interface CampaignDto {
   id: string;
@@ -14,6 +15,7 @@ interface CampaignDto {
 }
 
 export const MarketingScreen = () => {
+  const { colors, isDark } = useThemeColors();
   const navigation = useNavigation();
   const [campaigns, setCampaigns] = useState<CampaignDto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,45 +74,45 @@ export const MarketingScreen = () => {
   }, []);
 
   const renderItem = useCallback(({ item }: { item: CampaignDto }) => (
-    <View style={styles.card}>
+    <View style={[styles.card, { backgroundColor: colors.surface, shadowColor: colors.cardShadow }]}>
       <View style={styles.cardHeader}>
-        <Text style={styles.name}>{item.name}</Text>
-        <View style={[styles.badge, { backgroundColor: item.status === 'Sent' ? '#dcfce7' : '#f1f5f9' }]}>
-          <Text style={[styles.badgeText, { color: item.status === 'Sent' ? '#166534' : '#475569' }]}>
+        <Text style={[styles.name, { color: colors.text }]}>{item.name}</Text>
+        <View style={[styles.badge, { backgroundColor: item.status === 'Sent' ? (isDark ? '#064e3b' : '#dcfce7') : (isDark ? '#334155' : '#f1f5f9') }]}>
+          <Text style={[styles.badgeText, { color: item.status === 'Sent' ? (isDark ? '#86efac' : '#166534') : colors.textMuted }]}>
             {item.status === 'Sent' ? 'Wysłana' : 'Szkic'}
           </Text>
         </View>
       </View>
-      <Text style={styles.msg}>{item.message}</Text>
-      <View style={styles.footer}>
-        <Text style={styles.date}>{new Date(item.createdAt).toLocaleDateString()}</Text>
+      <Text style={[styles.msg, { color: colors.textMuted }]}>{item.message}</Text>
+      <View style={[styles.footer, { borderTopColor: colors.border }]}>
+        <Text style={[styles.date, { color: colors.textMuted }]}>{new Date(item.createdAt).toLocaleDateString()}</Text>
         {item.status !== 'Sent' && (
-          <TouchableOpacity style={styles.sendBtn} onPress={() => handleSend(item.id)}>
+          <TouchableOpacity style={[styles.sendBtn, { backgroundColor: colors.success }]} onPress={() => handleSend(item.id)}>
             <Send size={16} color="#ffffff" />
             <Text style={styles.sendBtnText}>Wyślij</Text>
           </TouchableOpacity>
         )}
       </View>
     </View>
-  ), [handleSend]);
+  ), [handleSend, colors, isDark]);
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, styles.center]}>
-        <ActivityIndicator size="large" color="#3b82f6" />
+      <SafeAreaView style={[styles.container, styles.center, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={{marginRight: 16}}>
-          <ArrowLeft color="#0f172a" size={24} />
+          <ArrowLeft color={colors.text} size={24} />
         </TouchableOpacity>
-        <Text style={styles.title}>Marketing</Text>
+        <Text style={[styles.title, { color: colors.text }]}>Marketing</Text>
         <View style={{flex: 1}} />
-        <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
+        <TouchableOpacity style={[styles.addButton, { backgroundColor: colors.primary }]} onPress={() => setModalVisible(true)}>
           <Plus color="#ffffff" size={20} />
         </TouchableOpacity>
       </View>
@@ -120,22 +122,22 @@ export const MarketingScreen = () => {
         keyExtractor={item => item.id}
         renderItem={renderItem}
         contentContainerStyle={styles.list}
-        ListEmptyComponent={<Text style={styles.emptyText}>Brak kampanii.</Text>}
+        ListEmptyComponent={<Text style={[styles.emptyText, { color: colors.textMuted }]}>Brak kampanii.</Text>}
       />
 
       <Modal visible={modalVisible} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
             <ScrollView>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Nowa Kampania</Text>
-                <TouchableOpacity onPress={() => setModalVisible(false)}><X color="#64748b" size={24} /></TouchableOpacity>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>Nowa Kampania</Text>
+                <TouchableOpacity onPress={() => setModalVisible(false)}><X color={colors.textMuted} size={24} /></TouchableOpacity>
               </View>
-              <Text style={styles.label}>Nazwa (tylko dla Ciebie) *</Text>
-              <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="np. Promocja Świąteczna" />
+              <Text style={[styles.label, { color: colors.text }]}>Nazwa (tylko dla Ciebie) *</Text>
+              <TextInput style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]} placeholderTextColor={colors.textMuted} value={name} onChangeText={setName} placeholder="np. Promocja Świąteczna" />
               
-              <Text style={styles.label}>Treść wiadomości (SMS/Email) *</Text>
-              <TextInput style={[styles.input, {height: 100}]} value={message} onChangeText={setMessage} multiline textAlignVertical="top" placeholder="Witaj! Mamy dla Ciebie promocję..." />
+              <Text style={[styles.label, { color: colors.text }]}>Treść wiadomości (SMS/Email) *</Text>
+              <TextInput style={[styles.input, {height: 100, backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]} placeholderTextColor={colors.textMuted} value={message} onChangeText={setMessage} multiline textAlignVertical="top" placeholder="Witaj! Mamy dla Ciebie promocję..." />
 
               <TouchableOpacity style={styles.submitBtn} onPress={handleCreate} disabled={submitting}>
                 {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>Zapisz Szkic</Text>}

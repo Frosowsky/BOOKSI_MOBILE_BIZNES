@@ -4,6 +4,7 @@ import api from '../../api/client';
 import { CreditCard, Plus, X, ArrowLeft, Gift, Edit3, Trash2 } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { useThemeColors } from '../../theme/useThemeColors';
 
 interface RewardDto {
   id: string;
@@ -14,6 +15,7 @@ interface RewardDto {
 }
 
 export const LoyaltyCardsScreen = () => {
+  const { colors, isDark } = useThemeColors();
   const navigation = useNavigation();
   const [rewards, setRewards] = useState<RewardDto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -108,76 +110,76 @@ export const LoyaltyCardsScreen = () => {
   };
 
   const renderItem = useCallback(({ item }: { item: RewardDto }) => (
-    <View style={styles.card}>
+    <View style={[styles.card, { backgroundColor: colors.surface, shadowColor: colors.cardShadow }]}>
       <View style={styles.cardHeader}>
         <View style={{flexDirection: 'row', alignItems: 'center', flex: 1}}>
           <Gift size={20} color="#f59e0b" style={{marginRight: 8}} />
-          <Text style={styles.name}>{item.name}</Text>
+          <Text style={[styles.name, { color: colors.text }]}>{item.name}</Text>
         </View>
         <View style={styles.actions}>
-          <TouchableOpacity onPress={() => handleEditRewardInit(item)} style={styles.iconBtn}>
-            <Edit3 color="#64748b" size={18} />
+          <TouchableOpacity onPress={() => handleEditRewardInit(item)} style={[styles.iconBtn, { backgroundColor: colors.background }]}>
+            <Edit3 color={colors.textMuted} size={18} />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => handleDeleteReward(item.id)} style={[styles.iconBtn, styles.deleteBtn]}>
-            <Trash2 color="#ef4444" size={18} />
+            <Trash2 color={colors.error} size={18} />
           </TouchableOpacity>
         </View>
       </View>
-      <View style={styles.pointsBadge}>
-        <Text style={styles.pointsText}>Wymagane punkty: {item.pointsRequired}</Text>
+      <View style={[styles.pointsBadge, { backgroundColor: isDark ? '#78350f' : '#fef3c7' }]}>
+        <Text style={[styles.pointsText, { color: isDark ? '#fde68a' : '#b45309' }]}>Wymagane punkty: {item.pointsRequired}</Text>
       </View>
-      {item.description ? <Text style={styles.desc}>{item.description}</Text> : null}
+      {item.description ? <Text style={[styles.desc, { color: colors.textMuted }]}>{item.description}</Text> : null}
     </View>
-  ), []);
+  ), [colors, isDark]);
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, styles.center]}>
+      <SafeAreaView style={[styles.container, styles.center, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color="#f59e0b" />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={{marginRight: 16}}>
-          <ArrowLeft color="#0f172a" size={24} />
+          <ArrowLeft color={colors.text} size={24} />
         </TouchableOpacity>
-        <Text style={styles.title}>Program Lojalnościowy</Text>
+        <Text style={[styles.title, { color: colors.text }]}>Program Lojalnościowy</Text>
         <View style={{flex: 1}} />
         <TouchableOpacity style={styles.addButton} onPress={openNewRewardModal}>
           <Plus color="#ffffff" size={20} />
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.sectionTitle}>Zarządzanie Nagrodami</Text>
+      <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>Zarządzanie Nagrodami</Text>
       
       <FlatList
         data={rewards}
         keyExtractor={item => item.id}
         renderItem={renderItem}
         contentContainerStyle={styles.list}
-        ListEmptyComponent={<Text style={styles.emptyText}>Brak nagród. Dodaj pierwszą!</Text>}
+        ListEmptyComponent={<Text style={[styles.emptyText, { color: colors.textMuted }]}>Brak nagród. Dodaj pierwszą!</Text>}
       />
 
       <Modal visible={modalVisible} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
             <ScrollView>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>{isEditing ? 'Edytuj Nagrodę' : 'Nowa Nagroda'}</Text>
-                <TouchableOpacity onPress={() => setModalVisible(false)}><X color="#64748b" size={24} /></TouchableOpacity>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>{isEditing ? 'Edytuj Nagrodę' : 'Nowa Nagroda'}</Text>
+                <TouchableOpacity onPress={() => setModalVisible(false)}><X color={colors.textMuted} size={24} /></TouchableOpacity>
               </View>
               
-              <Text style={styles.label}>Nazwa nagrody *</Text>
-              <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="np. Darmowe strzyżenie" />
+              <Text style={[styles.label, { color: colors.text }]}>Nazwa nagrody *</Text>
+              <TextInput style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]} placeholderTextColor={colors.textMuted} value={name} onChangeText={setName} placeholder="np. Darmowe strzyżenie" />
               
-              <Text style={styles.label}>Wymagana liczba punktów *</Text>
-              <TextInput style={styles.input} value={pointsRequired} onChangeText={setPointsRequired} keyboardType="numeric" />
+              <Text style={[styles.label, { color: colors.text }]}>Wymagana liczba punktów *</Text>
+              <TextInput style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]} placeholderTextColor={colors.textMuted} value={pointsRequired} onChangeText={setPointsRequired} keyboardType="numeric" />
               
-              <Text style={styles.label}>Opis opcjonalny</Text>
-              <TextInput style={styles.input} value={description} onChangeText={setDescription} placeholder="Opis nagrody" />
+              <Text style={[styles.label, { color: colors.text }]}>Opis opcjonalny</Text>
+              <TextInput style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]} placeholderTextColor={colors.textMuted} value={description} onChangeText={setDescription} placeholder="Opis nagrody" />
 
               <TouchableOpacity style={styles.submitBtn} onPress={handleSaveReward} disabled={submitting}>
                 {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>Zapisz Nagrodę</Text>}

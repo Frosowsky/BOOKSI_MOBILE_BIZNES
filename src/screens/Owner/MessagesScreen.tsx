@@ -4,8 +4,10 @@ import api from '../../api/client';
 import { MessageSquare, ArrowLeft } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { useThemeColors } from '../../theme/useThemeColors';
 
 export const MessagesScreen = () => {
+  const { colors, isDark } = useThemeColors();
   const navigation = useNavigation();
   const [chats, setChats] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,35 +33,35 @@ export const MessagesScreen = () => {
   }, []);
 
   const renderItem = useCallback(({ item }: { item: any }) => (
-    <TouchableOpacity style={styles.card}>
-      <View style={styles.avatarBox}>
-        <MessageSquare color="#10b981" size={20} />
+    <TouchableOpacity style={[styles.card, { backgroundColor: colors.surface, shadowColor: colors.cardShadow }]}>
+      <View style={[styles.avatarBox, { backgroundColor: isDark ? '#064e3b' : '#d1fae5' }]}>
+        <MessageSquare color={colors.success} size={20} />
       </View>
       <View style={styles.info}>
-        <Text style={styles.name}>{item.clientName || 'Klient'}</Text>
-        <Text style={styles.lastMsg} numberOfLines={1}>{item.lastMessage || 'Nowa wiadomość'}</Text>
+        <Text style={[styles.name, { color: colors.text }]}>{item.clientName || 'Klient'}</Text>
+        <Text style={[styles.lastMsg, { color: colors.textMuted }]} numberOfLines={1}>{item.lastMessage || 'Nowa wiadomość'}</Text>
       </View>
       <View style={styles.rightSide}>
-        <Text style={styles.time}>{item.lastMessageTime ? new Date(item.lastMessageTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}</Text>
+        <Text style={[styles.time, { color: colors.textMuted }]}>{item.lastMessageTime ? new Date(item.lastMessageTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}</Text>
       </View>
     </TouchableOpacity>
-  ), []);
+  ), [colors, isDark]);
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, styles.center]}>
-        <ActivityIndicator size="large" color="#10b981" />
+      <SafeAreaView style={[styles.container, styles.center, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={{marginRight: 16}}>
-          <ArrowLeft color="#0f172a" size={24} />
+          <ArrowLeft color={colors.text} size={24} />
         </TouchableOpacity>
-        <Text style={styles.title}>Wiadomości</Text>
+        <Text style={[styles.title, { color: colors.text }]}>Wiadomości</Text>
       </View>
 
       <FlatList
@@ -67,7 +69,7 @@ export const MessagesScreen = () => {
         keyExtractor={(item, index) => item.id?.toString() || index.toString()}
         renderItem={renderItem}
         contentContainerStyle={styles.list}
-        ListEmptyComponent={<Text style={styles.emptyText}>Brak wiadomości od klientów.</Text>}
+        ListEmptyComponent={<Text style={[styles.emptyText, { color: colors.textMuted }]}>Brak wiadomości od klientów.</Text>}
       />
     </SafeAreaView>
   );

@@ -257,7 +257,7 @@ export const EmployeeScheduleScreen = () => {
         )}
       </View>
     );
-  }, [handleToggleWorking, handleAddSlot, handleRemoveSlot, handleUpdateSlot]);
+  }, [handleToggleWorking, handleUpdateSlot, handleRemoveSlot, handleAddSlot, colors, isDark]);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>

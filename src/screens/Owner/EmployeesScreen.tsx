@@ -178,7 +178,7 @@ export const EmployeesScreen = () => {
         </View>
       </View>
     );
-  }, [handleToggleActive, navigation]);
+  }, [handleToggleActive, navigation, colors, isDark]);
 
   if (loading) {
     return (

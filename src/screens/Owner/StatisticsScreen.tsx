@@ -4,9 +4,11 @@ import api from '../../api/client';
 import { ArrowLeft, TrendingUp, Users, CalendarX, CheckCircle } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { useThemeColors } from '../../theme/useThemeColors';
 import { StatCard } from '../../components/StatCard';
 
 export const StatisticsScreen = () => {
+  const { colors, isDark } = useThemeColors();
   const navigation = useNavigation();
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -51,23 +53,23 @@ export const StatisticsScreen = () => {
   }, []);
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={{marginRight: 16}}>
-          <ArrowLeft color="#0f172a" size={24} />
+          <ArrowLeft color={colors.text} size={24} />
         </TouchableOpacity>
-        <Text style={styles.title}>Zaawansowane Statystyki</Text>
+        <Text style={[styles.title, { color: colors.text }]}>Zaawansowane Statystyki</Text>
       </View>
 
-      <View style={styles.filterBar}>
+      <View style={[styles.filterBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           {['day', 'week', 'month', 'year'].map(type => (
             <TouchableOpacity 
               key={type} 
-              style={[styles.filterBtn, rangeType === type && styles.filterBtnActive]}
+              style={[styles.filterBtn, { backgroundColor: colors.background, borderColor: colors.border }, rangeType === type && { backgroundColor: isDark ? '#3b216b' : '#f3e8ff', borderColor: '#8b5cf6' }]}
               onPress={() => calculateDatesAndFetch(type)}
             >
-              <Text style={[styles.filterText, rangeType === type && styles.filterTextActive]}>
+              <Text style={[styles.filterText, { color: colors.textMuted }, rangeType === type && { color: isDark ? '#c4b5fd' : '#8b5cf6', fontWeight: 'bold' }]}>
                 {type === 'day' ? 'Dziś' : type === 'week' ? 'Ostatnie 7 dni' : type === 'month' ? 'Ostatni Miesiąc' : 'Ostatni Rok'}
               </Text>
             </TouchableOpacity>
@@ -111,7 +113,7 @@ export const StatisticsScreen = () => {
               </View>
             </>
           ) : (
-            <Text style={{textAlign: 'center', color: '#94a3b8', marginTop: 40}}>Wybierz zakres aby zobaczyć statystyki</Text>
+            <Text style={{textAlign: 'center', color: colors.textMuted, marginTop: 40}}>Wybierz zakres aby zobaczyć statystyki</Text>
           )
         )}
       </ScrollView>

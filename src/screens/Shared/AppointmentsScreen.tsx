@@ -5,6 +5,7 @@ import { Clock, User, Check, X, CheckCircle2, Plus } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
+import { useThemeColors } from '../../theme/useThemeColors';
 
 LocaleConfig.locales['pl'] = {
   monthNames: ['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec','Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień'],
@@ -30,6 +31,7 @@ export interface AppointmentDto {
 }
 
 export const AppointmentsScreen = () => {
+  const { colors, isDark } = useThemeColors();
   const [appointments, setAppointments] = useState<AppointmentDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -116,28 +118,28 @@ export const AppointmentsScreen = () => {
     const startDate = new Date(item.startTime);
     
     return (
-      <View style={styles.card}>
+      <View style={[styles.card, { backgroundColor: colors.surface, shadowColor: colors.cardShadow }]}>
         <View style={styles.cardHeader}>
-          <Text style={styles.clientName}>{item.clientName}</Text>
-          <View style={[styles.badge, { backgroundColor: statusInfo.bg }]}>
-            <Text style={[styles.badgeText, { color: statusInfo.color }]}>{statusInfo.text}</Text>
+          <Text style={[styles.clientName, { color: colors.text }]}>{item.clientName}</Text>
+          <View style={[styles.badge, { backgroundColor: isDark ? (item.status === 0 ? '#78350f' : item.status === 1 ? '#064e3b' : item.status === 2 ? '#7f1d1d' : item.status === 3 ? '#1e3a8a' : '#334155') : statusInfo.bg }]}>
+            <Text style={[styles.badgeText, { color: isDark ? (item.status === 0 ? '#fde68a' : item.status === 1 ? '#6ee7b7' : item.status === 2 ? '#fca5a5' : item.status === 3 ? '#93c5fd' : colors.textMuted) : statusInfo.color }]}>{statusInfo.text}</Text>
           </View>
         </View>
 
         <View style={styles.detailsRow}>
-          <Clock size={16} color="#64748b" />
-          <Text style={styles.detailsText}>
+          <Clock size={16} color={colors.textMuted} />
+          <Text style={[styles.detailsText, { color: colors.textMuted }]}>
             {startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </Text>
         </View>
         <View style={styles.detailsRow}>
-          <User size={16} color="#64748b" />
-          <Text style={styles.detailsText}>Pracownik: {item.employeeName}</Text>
+          <User size={16} color={colors.textMuted} />
+          <Text style={[styles.detailsText, { color: colors.textMuted }]}>Pracownik: {item.employeeName}</Text>
         </View>
         {item.serviceName && (
           <View style={styles.detailsRow}>
-            <CheckCircle2 size={16} color="#64748b" />
-            <Text style={styles.detailsText}>Usługa: {item.serviceName}</Text>
+            <CheckCircle2 size={16} color={colors.textMuted} />
+            <Text style={[styles.detailsText, { color: colors.textMuted }]}>Usługa: {item.serviceName}</Text>
           </View>
         )}
 
@@ -159,18 +161,18 @@ export const AppointmentsScreen = () => {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, styles.center]}>
-        <ActivityIndicator size="large" color="#3b82f6" />
+      <SafeAreaView style={[styles.container, styles.center, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Lista Wizyt</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+        <Text style={[styles.title, { color: colors.text }]}>Lista Wizyt</Text>
         <TouchableOpacity onPress={() => navigation.navigate('NewAppointment')}>
-          <Plus color="#3b82f6" size={28} />
+          <Plus color={colors.primary} size={28} />
         </TouchableOpacity>
       </View>
       
@@ -178,11 +180,14 @@ export const AppointmentsScreen = () => {
         onDayPress={(day: any) => setSelectedDate(day.dateString)}
         markedDates={markedDates}
         theme={{
-          selectedDayBackgroundColor: '#3b82f6',
-          todayTextColor: '#3b82f6',
-          arrowColor: '#3b82f6',
-          dotColor: '#3b82f6',
-          monthTextColor: '#0f172a',
+          calendarBackground: colors.surface,
+          selectedDayBackgroundColor: colors.primary,
+          todayTextColor: colors.primary,
+          arrowColor: colors.primary,
+          dotColor: colors.primary,
+          monthTextColor: colors.text,
+          dayTextColor: colors.text,
+          textDisabledColor: colors.textMuted,
           textMonthFontWeight: 'bold',
         }}
       />
@@ -192,9 +197,9 @@ export const AppointmentsScreen = () => {
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>Brak wizyt w tym dniu.</Text>
+          <Text style={[styles.emptyText, { color: colors.textMuted }]}>Brak wizyt w tym dniu.</Text>
         }
       />
     </SafeAreaView>
