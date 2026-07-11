@@ -177,6 +177,7 @@ export const AppointmentsScreen = () => {
       </View>
       
       <Calendar
+        key={isDark ? 'dark' : 'light'}
         onDayPress={(day: any) => setSelectedDate(day.dateString)}
         markedDates={markedDates}
         theme={{
