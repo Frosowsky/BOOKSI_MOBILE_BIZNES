@@ -18,6 +18,7 @@ export const AppointmentDetailsScreen = () => {
   const [rating, setRating] = useState(0);
   const [clientDetails, setClientDetails] = useState<any>(null);
   const [loadingClient, setLoadingClient] = useState(false);
+  const [clientAppointments, setClientAppointments] = useState<AppointmentDto[]>([]);
   const [appointmentNotes, setAppointmentNotes] = useState(appointment.notes || '');
   const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null);
 
@@ -246,7 +247,7 @@ export const AppointmentDetailsScreen = () => {
 
                 <Text style={[styles.sectionTitle, { color: colors.text, marginLeft: 8, marginTop: 16 }]}>Historia Wizyt</Text>
                 {clientAppointments.length > 0 ? (
-                  clientAppointments.map((app) => (
+                  clientAppointments.map((app: any) => (
                     <TouchableOpacity 
                       key={app.id} 
                       style={[styles.historyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}

@@ -15,6 +15,10 @@ export const Step4Services = ({ navigation }: any) => {
   const [newPrice, setNewPrice] = useState('');
   const [newDuration, setNewDuration] = useState('60');
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [standardServiceId, setStandardServiceId] = useState<string | undefined>(undefined);
+  
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -46,15 +50,42 @@ export const Step4Services = ({ navigation }: any) => {
         description: '',
         price: parseFloat(newPrice),
         durationMinutes: parseInt(newDuration, 10),
-        categoryId: selectedCategory
+        categoryId: selectedCategory,
+        standardServiceId: standardServiceId
       });
       setNewName('');
       setNewPrice('');
       setNewDuration('60');
+      setStandardServiceId(undefined);
       fetchData();
     } catch (e) {
       Alert.alert('Błąd', 'Nie udało się dodać usługi.');
     }
+  };
+
+  const fetchSuggestions = async (val: string) => {
+    if (val.length >= 2) {
+      try {
+        const res = await api.get(`/StandardServices/suggest?q=${encodeURIComponent(val)}`);
+        setSuggestions(res.data);
+        setShowSuggestions(true);
+      } catch (e) { }
+    } else {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
+  };
+
+  const handleNameChange = (val: string) => {
+    setNewName(val);
+    setStandardServiceId(undefined);
+    fetchSuggestions(val);
+  };
+
+  const selectSuggestion = (id: string, name: string) => {
+    setNewName(name);
+    setStandardServiceId(id);
+    setShowSuggestions(false);
   };
 
   const deleteService = async (id: string) => {
@@ -70,14 +101,32 @@ export const Step4Services = ({ navigation }: any) => {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Text style={[styles.title, { color: colors.text }]}>Lista Usług</Text>
       
-      <View style={[styles.addForm, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <TextInput
-          style={[styles.input, { color: colors.text, borderColor: colors.border }]}
-          value={newName}
-          onChangeText={setNewName}
-          placeholder="Nazwa usługi"
-          placeholderTextColor={colors.text + '50'}
-        />
+      <View style={[styles.addForm, { backgroundColor: colors.surface, borderColor: colors.border, zIndex: 10 }]}>
+        <View style={{ zIndex: 20 }}>
+          <TextInput
+            style={[styles.input, { color: colors.text, borderColor: colors.border }]}
+            value={newName}
+            onChangeText={handleNameChange}
+            onFocus={() => { if(suggestions.length > 0) setShowSuggestions(true); }}
+            placeholder="Nazwa usługi"
+            placeholderTextColor={colors.text + '50'}
+          />
+          {showSuggestions && suggestions.length > 0 && (
+            <View style={{ position: 'absolute', top: 50, left: 0, right: 0, backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, maxHeight: 150, zIndex: 30, elevation: 5, shadowColor: '#000', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.1, shadowRadius: 4 }}>
+              <ScrollView nestedScrollEnabled keyboardShouldPersistTaps="handled">
+                {suggestions.map(s => (
+                  <TouchableOpacity 
+                    key={s.id} 
+                    style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: colors.border }}
+                    onPress={() => selectSuggestion(s.id, s.name)}
+                  >
+                    <Text style={{ color: colors.text }}>{s.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+        </View>
         <View style={styles.row}>
           <TextInput
             style={[styles.input, { flex: 1, color: colors.text, borderColor: colors.border, marginRight: 5 }]}

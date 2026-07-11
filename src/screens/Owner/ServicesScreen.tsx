@@ -40,10 +40,21 @@ export const ServicesScreen = () => {
   const [sDuration, setSDuration] = useState('60');
   const [sPrice, setSPrice] = useState('100');
   const [sCatId, setSCatId] = useState('');
+  const [sStandardServiceId, setSStandardServiceId] = useState<string | undefined>(undefined);
+  
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   // Category form
   const [cName, setCName] = useState('');
   const [cDesc, setCDesc] = useState('');
+  const [cStandardServiceCategoryId, setCStandardServiceCategoryId] = useState<string | undefined>(undefined);
+
+  const [standardServices, setStandardServices] = useState<any[]>([]);
+  const [standardCategories, setStandardCategories] = useState<any[]>([]);
+
+  const [catSuggestions, setCatSuggestions] = useState<any[]>([]);
+  const [showCatSuggestions, setShowCatSuggestions] = useState(false);
 
   // Search & Sort state
   const [searchQuery, setSearchQuery] = useState('');
@@ -52,12 +63,16 @@ export const ServicesScreen = () => {
 
   const fetchData = async () => {
     try {
-      const [srvRes, catRes] = await Promise.all([
+      const [srvRes, catRes, stdSrvRes, stdCatRes] = await Promise.all([
         api.get('/Services'),
-        api.get('/ServiceCategories')
+        api.get('/ServiceCategories'),
+        api.get('/StandardServices/all'),
+        api.get('/StandardServiceCategories/all')
       ]);
       setServices(srvRes.data);
       setCategories(catRes.data);
+      setStandardServices(stdSrvRes.data);
+      setStandardCategories(stdCatRes.data);
       if (catRes.data.length > 0 && !sCatId) {
         setSCatId(catRes.data[0].id);
       }
@@ -104,6 +119,7 @@ export const ServicesScreen = () => {
     setSPrice(srv.price.toString());
     setSDuration(srv.durationMinutes.toString());
     setSCatId(srv.categoryId);
+    setSStandardServiceId(undefined); // Could pass from API if available
     setServiceModalVisible(true);
   }, []);
 
@@ -111,10 +127,15 @@ export const ServicesScreen = () => {
     if (!cName) return Alert.alert('Błąd', 'Nazwa jest wymagana');
     setSubmitting(true);
     try {
-      await api.post('/ServiceCategories', { name: cName, description: cDesc });
+      await api.post('/ServiceCategories', { 
+        name: cName, 
+        description: cDesc,
+        standardServiceCategoryId: cStandardServiceCategoryId 
+      });
       setCategoryModalVisible(false);
       setCName('');
       setCDesc('');
+      setCStandardServiceCategoryId(undefined);
       await fetchData();
     } catch (e) {
       Alert.alert('Błąd', 'Nie udało się dodać kategorii');
@@ -132,7 +153,8 @@ export const ServicesScreen = () => {
         description: sDesc,
         price: parseFloat(sPrice),
         durationMinutes: parseInt(sDuration),
-        categoryId: sCatId
+        categoryId: sCatId,
+        standardServiceId: sStandardServiceId
       };
 
       if (isEditing && editingId) {
@@ -148,6 +170,7 @@ export const ServicesScreen = () => {
       setSDesc('');
       setSPrice('100');
       setSDuration('60');
+      setSStandardServiceId(undefined);
       await fetchData();
     } catch (e) {
       Alert.alert('Błąd', 'Nie udało się zapisać usługi');
@@ -164,8 +187,49 @@ export const ServicesScreen = () => {
     setSDesc('');
     setSPrice('100');
     setSDuration('60');
+    setSStandardServiceId(undefined);
     if(!sCatId && categories.length > 0) setSCatId(categories[0].id);
     setServiceModalVisible(true);
+  };
+
+  const handleSNameChange = (val: string) => {
+    setSName(val);
+    setSStandardServiceId(undefined);
+    if (val.length >= 2) {
+      const filtered = standardServices.filter(s => s.name.toLowerCase().includes(val.toLowerCase()));
+      setSuggestions(filtered.slice(0, 10));
+      setShowSuggestions(true);
+    } else {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
+  };
+
+  const handleCNameChange = (val: string) => {
+    setCName(val);
+    setCStandardServiceCategoryId(undefined);
+    if (val.length >= 2) {
+      const filtered = standardCategories.filter(c => c.name.toLowerCase().includes(val.toLowerCase()));
+      setCatSuggestions(filtered.slice(0, 10));
+      setShowCatSuggestions(true);
+    } else {
+      setCatSuggestions([]);
+      setShowCatSuggestions(false);
+    }
+  };
+
+  const selectCatSuggestion = (id: string, name: string) => {
+    setCName(name);
+    setCStandardServiceCategoryId(id);
+    setShowCatSuggestions(false);
+  };
+
+
+
+  const selectSuggestion = (id: string, name: string) => {
+    setSName(name);
+    setSStandardServiceId(id);
+    setShowSuggestions(false);
   };
 
   const handleSortToggle = (type: 'category' | 'name') => {
@@ -338,8 +402,30 @@ export const ServicesScreen = () => {
               <Text style={[styles.modalTitle, { color: colors.text }]}>Nowa Kategoria</Text>
               <TouchableOpacity onPress={() => setCategoryModalVisible(false)}><X color={colors.textMuted} size={24} /></TouchableOpacity>
             </View>
-            <Text style={[styles.label, { color: colors.text }]}>Nazwa kategorii *</Text>
-            <TextInput style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]} placeholderTextColor={colors.textMuted} value={cName} onChangeText={setCName} placeholder="np. Strzyżenie" />
+            <View style={{ zIndex: 10 }}>
+              <Text style={[styles.label, { color: colors.text }]}>Nazwa kategorii *</Text>
+              <TextInput 
+                style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]} 
+                placeholderTextColor={colors.textMuted} 
+                value={cName} 
+                onChangeText={handleCNameChange} 
+                onFocus={() => { if(catSuggestions.length > 0) setShowCatSuggestions(true); }}
+                placeholder="np. Strzyżenie" 
+              />
+              {showCatSuggestions && catSuggestions.length > 0 && (
+                <View style={[styles.suggestionsContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                  {catSuggestions.map(s => (
+                    <TouchableOpacity 
+                      key={s.id} 
+                      style={[styles.suggestionItem, { borderBottomColor: colors.border }]}
+                      onPress={() => selectCatSuggestion(s.id, s.name)}
+                    >
+                      <Text style={{ color: colors.text }}>{s.name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
             <Text style={[styles.label, { color: colors.text }]}>Opis</Text>
             <TextInput style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]} placeholderTextColor={colors.textMuted} value={cDesc} onChangeText={setCDesc} placeholder="Krótki opis" />
             <TouchableOpacity style={styles.submitBtn} onPress={handleAddCategory} disabled={submitting}>
@@ -372,8 +458,33 @@ export const ServicesScreen = () => {
                 ))}
               </ScrollView>
 
-              <Text style={[styles.label, { color: colors.text }]}>Nazwa usługi *</Text>
-              <TextInput style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]} placeholderTextColor={colors.textMuted} value={sName} onChangeText={setSName} placeholder="np. Strzyżenie męskie" />
+              <View style={{ zIndex: 10 }}>
+                <Text style={[styles.label, { color: colors.text }]}>Nazwa usługi *</Text>
+                <TextInput 
+                  style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]} 
+                  placeholderTextColor={colors.textMuted} 
+                  value={sName} 
+                  onChangeText={handleSNameChange} 
+                  onFocus={() => { if(suggestions.length > 0) setShowSuggestions(true); }}
+                  placeholder="np. Strzyżenie męskie" 
+                />
+                
+                {showSuggestions && suggestions.length > 0 && (
+                  <View style={{ position: 'absolute', top: 80, left: 0, right: 0, backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, maxHeight: 150, zIndex: 20, elevation: 5, shadowColor: '#000', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.1, shadowRadius: 4 }}>
+                    <ScrollView nestedScrollEnabled keyboardShouldPersistTaps="handled">
+                      {suggestions.map(s => (
+                        <TouchableOpacity 
+                          key={s.id} 
+                          style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: colors.border }}
+                          onPress={() => selectSuggestion(s.id, s.name)}
+                        >
+                          <Text style={{ color: colors.text }}>{s.name}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
+              </View>
               
               <Text style={[styles.label, { color: colors.text }]}>Cena (PLN) *</Text>
               <TextInput style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]} placeholderTextColor={colors.textMuted} value={sPrice} onChangeText={setSPrice} keyboardType="numeric" />
@@ -446,5 +557,8 @@ const styles = StyleSheet.create({
   catPill: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#f1f5f9', marginRight: 8, borderWidth: 1, borderColor: '#e2e8f0' },
   catPillActive: { backgroundColor: '#eff6ff', borderColor: '#3b82f6' },
   catPillText: { color: '#64748b', fontWeight: '500' },
-  catPillTextActive: { color: '#3b82f6', fontWeight: 'bold' }
+  catPillTextActive: { color: '#3b82f6', fontWeight: 'bold' },
+  
+  suggestionsContainer: { position: 'absolute', top: '100%', left: 0, right: 0, borderWidth: 1, borderRadius: 8, maxHeight: 150, overflow: 'hidden', marginTop: 4, elevation: 4, zIndex: 10 },
+  suggestionItem: { padding: 12, borderBottomWidth: 1 }
 });

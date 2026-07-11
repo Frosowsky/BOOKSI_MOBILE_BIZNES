@@ -15,7 +15,7 @@ interface AuthContextData {
   setIsSetupCompleted: (val: boolean) => void;
   signIn: (token: string, refreshToken: string, salonId: string, tenantId: string) => Promise<void>;
   signOut: () => Promise<void>;
-  enableBiometric: (token: string, refreshToken: string) => Promise<void>;
+  enableBiometric: (token: string, refreshToken: string, isPasswordLogin?: boolean) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextData>({} as AuthContextData);
