@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert, RefreshControl } from 'react-native';
 import api from '../../api/client';
-import { Clock, User, Check, X, CheckCircle2, Plus, List } from 'lucide-react-native';
+import { Clock, User, CheckCircle2, Plus, List } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { useThemeColors } from '../../theme/useThemeColors';
+import { AppointmentBottomSheet } from '../../components/AppointmentBottomSheet';
 
 LocaleConfig.locales['pl'] = {
   monthNames: ['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec','Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień'],
@@ -28,6 +29,7 @@ export interface AppointmentDto {
   startTime: string;
   endTime: string;
   status: number; 
+  notes?: string;
 }
 
 export const AppointmentsScreen = () => {
@@ -36,6 +38,8 @@ export const AppointmentsScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedAppointment, setSelectedAppointment] = useState<AppointmentDto | null>(null);
+  const [isModalVisible, setIsModalVisible] = useState(false);
   const navigation = useNavigation<any>();
 
   const fetchAppointments = async () => {
@@ -113,12 +117,26 @@ export const AppointmentsScreen = () => {
 
   const filteredAppointments = appointments.filter(a => a.startTime.startsWith(selectedDate));
 
+  const openModal = (item: AppointmentDto) => {
+    setSelectedAppointment(item);
+    setIsModalVisible(true);
+  };
+
+  const closeModal = () => {
+    setIsModalVisible(false);
+    setSelectedAppointment(null);
+  };
+
   const renderItem = ({ item }: { item: AppointmentDto }) => {
     const statusInfo = getStatusText(item.status);
     const startDate = new Date(item.startTime);
     
     return (
-      <View style={[styles.card, { backgroundColor: colors.surface, shadowColor: colors.cardShadow }]}>
+      <TouchableOpacity 
+        style={[styles.card, { backgroundColor: colors.surface, shadowColor: colors.cardShadow }]}
+        activeOpacity={0.7}
+        onPress={() => openModal(item)}
+      >
         <View style={styles.cardHeader}>
           <Text style={[styles.clientName, { color: colors.text }]}>{item.clientName}</Text>
           <View style={[styles.badge, { backgroundColor: isDark ? (item.status === 0 ? '#78350f' : item.status === 1 ? '#064e3b' : item.status === 2 ? '#7f1d1d' : item.status === 3 ? '#1e3a8a' : '#334155') : statusInfo.bg }]}>
@@ -142,20 +160,14 @@ export const AppointmentsScreen = () => {
             <Text style={[styles.detailsText, { color: colors.textMuted }]}>Usługa: {item.serviceName}</Text>
           </View>
         )}
-
-        {item.status === 0 && (
-          <View style={styles.actionsRow}>
-            <TouchableOpacity style={[styles.actionBtn, styles.approveBtn]} onPress={() => handleApprove(item.id)}>
-              <Check size={16} color="#fff" style={{marginRight: 4}}/>
-              <Text style={styles.actionBtnText}>Zatwierdź</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.actionBtn, styles.rejectBtn]} onPress={() => handleReject(item.id)}>
-              <X size={16} color="#fff" style={{marginRight: 4}}/>
-              <Text style={styles.actionBtnText}>Odrzuć</Text>
-            </TouchableOpacity>
+        {item.notes && (
+          <View style={[styles.detailsRow, { marginTop: 4, padding: 8, backgroundColor: isDark ? '#1e293b' : '#f1f5f9', borderRadius: 8 }]}>
+            <Text style={[{ color: colors.textMuted, fontStyle: 'italic', fontSize: 13 }]} numberOfLines={2}>
+              Uwagi: {item.notes}
+            </Text>
           </View>
         )}
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -207,6 +219,14 @@ export const AppointmentsScreen = () => {
         ListEmptyComponent={
           <Text style={[styles.emptyText, { color: colors.textMuted }]}>Brak wizyt w tym dniu.</Text>
         }
+      />
+
+      <AppointmentBottomSheet
+        isVisible={isModalVisible}
+        onClose={closeModal}
+        appointment={selectedAppointment}
+        onApprove={handleApprove}
+        onReject={handleReject}
       />
     </SafeAreaView>
   );

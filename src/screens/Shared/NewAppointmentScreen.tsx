@@ -2,11 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import api from '../../api/client';
 import { Calendar as CalendarIcon, Clock, User, Scissors, Check, X } from 'lucide-react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export const NewAppointmentScreen = () => {
   const navigation = useNavigation();
+  const route = useRoute<any>();
+  const editAppointmentId = route.params?.editAppointmentId;
+
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -27,19 +30,34 @@ export const NewAppointmentScreen = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [cRes, eRes, sRes] = await Promise.all([
+        const [cRes, eRes, sRes, apptsRes] = await Promise.all([
           api.get('/CompanyClients'),
           api.get('/Employees'),
-          api.get('/Services')
+          api.get('/Services'),
+          editAppointmentId ? api.get('/Appointments') : Promise.resolve({ data: [] })
         ]);
         setClients(cRes.data);
         setEmployees(eRes.data);
         setServices(sRes.data);
 
-        // Ustaw domyślne daty na dziś
-        const now = new Date();
-        setDateStr(now.toISOString().split('T')[0]);
-        setTimeStr(now.toTimeString().substring(0, 5));
+        if (editAppointmentId) {
+          const apptToEdit = apptsRes.data.find((a: any) => a.id === editAppointmentId);
+          if (apptToEdit) {
+            setSelectedClient(apptToEdit.clientId);
+            setSelectedEmployee(apptToEdit.employeeId);
+            setSelectedService(apptToEdit.serviceId);
+            
+            const startDate = new Date(apptToEdit.startTime);
+            setDateStr(startDate.toISOString().split('T')[0]);
+            setTimeStr(startDate.toTimeString().substring(0, 5));
+            setNotes(apptToEdit.notes || '');
+          }
+        } else {
+          // Ustaw domyślne daty na dziś
+          const now = new Date();
+          setDateStr(now.toISOString().split('T')[0]);
+          setTimeStr(now.toTimeString().substring(0, 5));
+        }
       } catch (e) {
         console.error('Failed to load form data', e);
       } finally {
@@ -64,6 +82,7 @@ export const NewAppointmentScreen = () => {
       const endDateTime = new Date(startDateTime.getTime() + duration * 60000);
 
       const payload = {
+        id: editAppointmentId,
         clientId: selectedClient,
         employeeId: selectedEmployee,
         serviceId: selectedService,
@@ -72,10 +91,17 @@ export const NewAppointmentScreen = () => {
         notes: notes
       };
 
-      await api.post('/Appointments', payload);
-      Alert.alert('Sukces', 'Wizyta została utworzona.', [
-        { text: 'OK', onPress: () => navigation.goBack() }
-      ]);
+      if (editAppointmentId) {
+        await api.put(`/Appointments/${editAppointmentId}`, payload);
+        Alert.alert('Sukces', 'Wizyta została zaktualizowana.', [
+          { text: 'OK', onPress: () => navigation.goBack() }
+        ]);
+      } else {
+        await api.post('/Appointments', payload);
+        Alert.alert('Sukces', 'Wizyta została utworzona.', [
+          { text: 'OK', onPress: () => navigation.goBack() }
+        ]);
+      }
     } catch (e) {
       console.error(e);
       Alert.alert('Błąd', 'Nie udało się zapisać wizyty.');
@@ -121,7 +147,7 @@ export const NewAppointmentScreen = () => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={{paddingRight: 10}}>
           <X color="#0f172a" size={24} />
         </TouchableOpacity>
-        <Text style={styles.title}>Nowa Wizyta</Text>
+        <Text style={styles.title}>{editAppointmentId ? 'Edycja Wizyty' : 'Nowa Wizyta'}</Text>
         <View style={{width: 24}}/>
       </View>
       <ScrollView contentContainerStyle={styles.content}>
@@ -181,7 +207,7 @@ export const NewAppointmentScreen = () => {
           ) : (
             <>
               <Check size={20} color="#fff" style={{marginRight: 8}}/>
-              <Text style={styles.submitBtnText}>Zapisz Wizytę</Text>
+              <Text style={styles.submitBtnText}>{editAppointmentId ? 'Zapisz Zmiany' : 'Zapisz Wizytę'}</Text>
             </>
           )}
         </TouchableOpacity>

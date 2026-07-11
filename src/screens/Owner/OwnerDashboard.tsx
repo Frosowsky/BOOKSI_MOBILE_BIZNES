@@ -10,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useThemeColors } from '../../theme/useThemeColors';
+import { AppointmentBottomSheet } from '../../components/AppointmentBottomSheet';
 
 interface Stats {
   revenueToday: number;
@@ -32,7 +33,7 @@ interface EmployeeSchedule {
   tasks: EmployeeTask[];
 }
 
-const EmployeeCard = memo(({ emp }: { emp: EmployeeSchedule }) => {
+const EmployeeCard = memo(({ emp, onTaskPress }: { emp: EmployeeSchedule, onTaskPress: (task: EmployeeTask) => void }) => {
   const { colors, isDark } = useThemeColors();
   return (
     <View style={[styles.employeeCard, { backgroundColor: colors.surface, shadowColor: colors.cardShadow }]}>
@@ -41,7 +42,12 @@ const EmployeeCard = memo(({ emp }: { emp: EmployeeSchedule }) => {
         <Text style={[styles.noTasks, { color: colors.textMuted }]}>Brak wizyt na dziś</Text>
       ) : (
         emp.tasks.map(task => (
-          <View key={task.id} style={[styles.taskItem, { borderTopColor: colors.border }]}>
+          <TouchableOpacity 
+            key={task.id} 
+            style={[styles.taskItem, { borderTopColor: colors.border }]}
+            onPress={() => onTaskPress(task)}
+            disabled={task.isCustom}
+          >
             <View style={styles.taskTimeBox}>
               <Clock size={14} color={colors.textMuted} style={{marginRight: 4}}/>
               <Text style={[styles.taskTime, { color: colors.textMuted }]}>{task.time}</Text>
@@ -51,7 +57,7 @@ const EmployeeCard = memo(({ emp }: { emp: EmployeeSchedule }) => {
               {task.client && <Text style={[styles.taskClient, { color: colors.textMuted }]}>{task.client}</Text>}
             </View>
             <Text style={[styles.taskDuration, { color: colors.textMuted }]}>{task.duration} min</Text>
-          </View>
+          </TouchableOpacity>
         ))
       )}
     </View>
@@ -64,19 +70,52 @@ export const OwnerDashboard = () => {
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
   const [stats, setStats] = useState<Stats | null>(null);
   const [schedules, setSchedules] = useState<EmployeeSchedule[]>([]);
+  const [appointments, setAppointments] = useState<any[]>([]);
+  const [selectedAppointment, setSelectedAppointment] = useState<any | null>(null);
+  const [isModalVisible, setIsModalVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchData = async () => {
     try {
-      const [statsRes, apptsRes] = await Promise.all([
+      const [statsRes, apptsRes, fullApptsRes] = await Promise.all([
         api.get('/CompanyDashboard/stats'),
-        api.get('/CompanyDashboard/appointments')
+        api.get('/CompanyDashboard/appointments'),
+        api.get('/Appointments')
       ]);
       setStats(statsRes.data);
       setSchedules(apptsRes.data);
+      setAppointments(fullApptsRes.data);
     } catch (e) {
       console.error('Error fetching owner dashboard data:', e);
+    }
+  };
+
+  const handleTaskPress = (task: EmployeeTask) => {
+    if (!task.isCustom) {
+      const appt = appointments.find(a => a.id === task.id);
+      if (appt) {
+        setSelectedAppointment(appt);
+        setIsModalVisible(true);
+      }
+    }
+  };
+
+  const handleApprove = async (id: string) => {
+    try {
+      await api.post(`/Appointments/${id}/approve`);
+      fetchData();
+    } catch (e) {
+      Alert.alert('Błąd', 'Nie udało się zatwierdzić wizyty.');
+    }
+  };
+
+  const handleReject = async (id: string) => {
+    try {
+      await api.post(`/Appointments/${id}/reject`);
+      fetchData();
+    } catch (e) {
+      Alert.alert('Błąd', 'Nie udało się odrzucić wizyty.');
     }
   };
 
@@ -208,10 +247,18 @@ export const OwnerDashboard = () => {
 
         <Text style={[styles.sectionTitle, { color: colors.text }]}>Grafik na dziś</Text>
         {schedules.map((emp) => (
-          <EmployeeCard key={emp.employeeId} emp={emp} />
+          <EmployeeCard key={emp.employeeId} emp={emp} onTaskPress={handleTaskPress} />
         ))}
         <View style={{height: 20}} />
       </ScrollView>
+
+      <AppointmentBottomSheet
+        isVisible={isModalVisible}
+        onClose={() => setIsModalVisible(false)}
+        appointment={selectedAppointment}
+        onApprove={handleApprove}
+        onReject={handleReject}
+      />
     </SafeAreaView>
   );
 };
