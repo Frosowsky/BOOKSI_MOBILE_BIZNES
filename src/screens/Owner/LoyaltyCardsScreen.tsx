@@ -1,0 +1,166 @@
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert, Modal, TextInput, ScrollView } from 'react-native';
+import api from '../../api/client';
+import { CreditCard, Plus, X, ArrowLeft, Gift } from 'lucide-react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+
+interface RewardDto {
+  id: string;
+  name: string;
+  pointsRequired: number;
+  description: string;
+  isActive: boolean;
+}
+
+export const LoyaltyCardsScreen = () => {
+  const navigation = useNavigation();
+  const [rewards, setRewards] = useState<RewardDto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [modalVisible, setModalVisible] = useState(false);
+  
+  const [name, setName] = useState('');
+  const [pointsRequired, setPointsRequired] = useState('10');
+  const [description, setDescription] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const fetchRewards = async () => {
+    try {
+      const res = await api.get('/Loyalty/rewards');
+      setRewards(res.data);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    const init = async () => {
+      setLoading(true);
+      await fetchRewards();
+      setLoading(false);
+    };
+    init();
+  }, []);
+
+  const handleAddReward = async () => {
+    if (!name || !pointsRequired) return Alert.alert('Błąd', 'Wypełnij nazwę i punkty');
+    setSubmitting(true);
+    try {
+      await api.post('/Loyalty/rewards', { 
+        name, 
+        pointsRequired: parseInt(pointsRequired), 
+        description,
+        isActive: true
+      });
+      setModalVisible(false);
+      setName('');
+      setPointsRequired('10');
+      setDescription('');
+      await fetchRewards();
+    } catch (e) {
+      Alert.alert('Błąd', 'Nie udało się dodać nagrody');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const renderItem = useCallback(({ item }: { item: RewardDto }) => (
+    <View style={styles.card}>
+      <View style={styles.cardHeader}>
+        <View style={{flexDirection: 'row', alignItems: 'center'}}>
+          <Gift size={20} color="#f59e0b" style={{marginRight: 8}} />
+          <Text style={styles.name}>{item.name}</Text>
+        </View>
+        <View style={styles.pointsBadge}>
+          <Text style={styles.pointsText}>{item.pointsRequired} pkt</Text>
+        </View>
+      </View>
+      {item.description ? <Text style={styles.desc}>{item.description}</Text> : null}
+    </View>
+  ), []);
+
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.container, styles.center]}>
+        <ActivityIndicator size="large" color="#f59e0b" />
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={{marginRight: 16}}>
+          <ArrowLeft color="#0f172a" size={24} />
+        </TouchableOpacity>
+        <Text style={styles.title}>Program Lojalnościowy</Text>
+        <View style={{flex: 1}} />
+        <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
+          <Plus color="#ffffff" size={20} />
+        </TouchableOpacity>
+      </View>
+
+      <Text style={styles.sectionTitle}>Zarządzanie Nagrodami</Text>
+      
+      <FlatList
+        data={rewards}
+        keyExtractor={item => item.id}
+        renderItem={renderItem}
+        contentContainerStyle={styles.list}
+        ListEmptyComponent={<Text style={styles.emptyText}>Brak nagród. Dodaj pierwszą!</Text>}
+      />
+
+      <Modal visible={modalVisible} animationType="slide" transparent={true}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <ScrollView>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Nowa Nagroda</Text>
+                <TouchableOpacity onPress={() => setModalVisible(false)}><X color="#64748b" size={24} /></TouchableOpacity>
+              </View>
+              
+              <Text style={styles.label}>Nazwa nagrody *</Text>
+              <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="np. Darmowe strzyżenie" />
+              
+              <Text style={styles.label}>Wymagana liczba punktów *</Text>
+              <TextInput style={styles.input} value={pointsRequired} onChangeText={setPointsRequired} keyboardType="numeric" />
+              
+              <Text style={styles.label}>Opis opcjonalny</Text>
+              <TextInput style={styles.input} value={description} onChangeText={setDescription} placeholder="Opis nagrody" />
+
+              <TouchableOpacity style={styles.submitBtn} onPress={handleAddReward} disabled={submitting}>
+                {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>Dodaj Nagrodę</Text>}
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#f8fafc' },
+  center: { justifyContent: 'center', alignItems: 'center' },
+  header: { flexDirection: 'row', alignItems: 'center', padding: 20, backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
+  title: { fontSize: 20, fontWeight: 'bold', color: '#0f172a' },
+  addButton: { backgroundColor: '#f59e0b', padding: 8, borderRadius: 8 },
+  sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#475569', marginHorizontal: 16, marginTop: 16 },
+  list: { padding: 16 },
+  card: { backgroundColor: '#ffffff', borderRadius: 12, padding: 16, marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  name: { fontSize: 16, fontWeight: 'bold', color: '#1e293b' },
+  pointsBadge: { backgroundColor: '#fef3c7', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
+  pointsText: { color: '#b45309', fontWeight: 'bold', fontSize: 13 },
+  desc: { fontSize: 14, color: '#64748b' },
+  emptyText: { textAlign: 'center', color: '#94a3b8', marginTop: 40 },
+
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: '#ffffff', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, paddingBottom: 40, maxHeight: '90%' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
+  modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#0f172a' },
+  label: { fontSize: 14, fontWeight: '600', color: '#334155', marginBottom: 8, marginTop: 12 },
+  input: { backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 8, padding: 12, fontSize: 16, color: '#0f172a' },
+  submitBtn: { backgroundColor: '#0f172a', borderRadius: 8, padding: 16, alignItems: 'center', marginTop: 24 },
+  submitBtnText: { color: '#ffffff', fontSize: 16, fontWeight: '600' }
+});

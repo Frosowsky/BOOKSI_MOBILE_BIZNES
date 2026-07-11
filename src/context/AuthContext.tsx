@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { jwtDecode } from 'jwt-decode';
 import api from '../api/client';
 
@@ -12,6 +13,7 @@ interface AuthContextData {
   tenantId: string | null;
   signIn: (token: string, refreshToken: string, salonId: string, tenantId: string) => Promise<void>;
   signOut: () => Promise<void>;
+  enableBiometric: (token: string, refreshToken: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextData>({} as AuthContextData);
@@ -23,7 +25,6 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
   const [tenantId, setTenantId] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check if user is already logged in
     const bootstrapAsync = async () => {
       try {
         const token = await AsyncStorage.getItem('token');
@@ -49,10 +50,12 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     try {
       const decoded: any = jwtDecode(token);
       let role: Role = null;
+      console.log('Decoded Token:', decoded);
 
-      // Map roles
-      if (decoded.role) {
-        const roles = Array.isArray(decoded.role) ? decoded.role : [decoded.role];
+      const roleClaim = decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || decoded.role;
+
+      if (roleClaim) {
+        const roles = Array.isArray(roleClaim) ? roleClaim : [roleClaim];
         if (roles.includes('SalonOwner') || roles.includes('Admin')) {
           role = 'SalonOwner';
         } else if (roles.includes('Salesperson')) {
@@ -60,6 +63,10 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         } else if (roles.includes('SalonEmployee')) {
           role = 'SalonEmployee';
         }
+      }
+
+      if (!role) {
+         console.warn('Uwaga: Nie udało się zmapować roli z tokena!', roleClaim);
       }
 
       await AsyncStorage.setItem('token', token);
@@ -77,14 +84,25 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
   };
 
   const signOut = async () => {
+    // We intentionally DO NOT remove the biometric credentials from SecureStore,
+    // so the user can easily log back in using their fingerprint.
     await AsyncStorage.multiRemove(['token', 'refreshToken', 'user_role', 'salonId', 'tenant_id']);
     setUserRole(null);
     setSalonId(null);
     setTenantId(null);
   };
 
+  const enableBiometric = async (token: string, refreshToken: string) => {
+    try {
+      await SecureStore.setItemAsync('biometric_token', token);
+      await SecureStore.setItemAsync('biometric_refresh_token', refreshToken);
+    } catch (e) {
+      console.error('Error enabling biometrics', e);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ isLoading, userRole, salonId, tenantId, signIn, signOut }}>
+    <AuthContext.Provider value={{ isLoading, userRole, salonId, tenantId, signIn, signOut, enableBiometric }}>
       {children}
     </AuthContext.Provider>
   );
