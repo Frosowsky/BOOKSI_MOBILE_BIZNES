@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
-import { LogIn, Fingerprint } from 'lucide-react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Modal, Image, Pressable } from 'react-native';
+import { LogIn, Fingerprint, X } from 'lucide-react-native';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
 import api from '../../api/client';
@@ -14,6 +14,10 @@ export const LoginScreen = () => {
   const [isBiometricSupported, setIsBiometricSupported] = useState(false);
   const [hasBiometricRecord, setHasBiometricRecord] = useState(false);
   
+  // Easter Egg state
+  const [clickCount, setClickCount] = useState(0);
+  const [showCat, setShowCat] = useState(false);
+
   const { signIn, enableBiometric } = useAuth();
 
   useEffect(() => {
@@ -25,7 +29,6 @@ export const LoginScreen = () => {
         const storedRefreshToken = await SecureStore.getItemAsync('biometric_refresh_token');
         if (storedRefreshToken) {
           setHasBiometricRecord(true);
-          // Automatyczna próba logowania biometrycznego, jeśli mamy zapisane dane
           handleBiometricLogin();
         }
       }
@@ -47,7 +50,6 @@ export const LoginScreen = () => {
         const oldRefreshToken = await SecureStore.getItemAsync('biometric_refresh_token');
 
         if (oldToken && oldRefreshToken) {
-          // Wywołujemy odświeżenie tokena
           const response = await api.post('/auth/refresh', {
             token: oldToken,
             refreshToken: oldRefreshToken,
@@ -55,11 +57,7 @@ export const LoginScreen = () => {
           });
           
           const { token, refreshToken } = response.data;
-          
-          // Aktualizujemy tokeny w bezpiecznym schowku na przyszłość
           await enableBiometric(token, refreshToken);
-          
-          // Zaloguj w kontekście (zakładamy salonId null dopóki użytkownik nie wybierze, lub bierzemy z decoded)
           await signIn(token, refreshToken, '', '');
         } else {
           Alert.alert('Błąd', 'Nie znaleziono zapisanych danych logowania. Zaloguj się tradycyjnie.');
@@ -87,7 +85,6 @@ export const LoginScreen = () => {
       
       const { token, refreshToken, salonId } = response.data;
       
-      // Jeżeli wspiera biometrię, a jeszcze nie ma zapisanego tokena, pytamy czy zapisać
       if (isBiometricSupported && !hasBiometricRecord) {
         Alert.alert(
           'Logowanie biometryczne',
@@ -109,7 +106,6 @@ export const LoginScreen = () => {
           ]
         );
       } else {
-        // Zapisz nowe tokeny jeśli biometria już jest włączona, zaktualizuj też w secure store by utrzymać sesję
         if (hasBiometricRecord) {
           await enableBiometric(token, refreshToken);
         }
@@ -122,6 +118,16 @@ export const LoginScreen = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleVersionPress = () => {
+    setClickCount(prev => {
+      if (prev + 1 === 15) {
+        setShowCat(true);
+        return 0; // reset
+      }
+      return prev + 1;
+    });
   };
 
   return (
@@ -188,7 +194,27 @@ export const LoginScreen = () => {
           )}
         </View>
       </KeyboardAvoidingView>
-      <Text style={styles.versionText}>v1.0.3</Text>
+
+      <TouchableOpacity style={styles.versionContainer} activeOpacity={1} onPress={handleVersionPress}>
+        <Text style={styles.versionText}>v1.0.3</Text>
+      </TouchableOpacity>
+
+      <Modal visible={showCat} transparent={true} animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.catBox}>
+            <TouchableOpacity style={styles.closeCat} onPress={() => setShowCat(false)}>
+              <X color="#94a3b8" size={24} />
+            </TouchableOpacity>
+            <Text style={{fontSize: 24, fontWeight: 'bold', marginBottom: 16}}>Sekret Odkryty!</Text>
+            <Image 
+              source={require('../../../assets/dancing_cat.png')} 
+              style={{ width: 250, height: 250, borderRadius: 12 }} 
+            />
+            <Text style={{marginTop: 16, fontSize: 16, color: '#64748b'}}>Tańczący kotek pozdrawia 🐱💃</Text>
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
   );
 };
@@ -279,12 +305,33 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  versionText: {
+  versionContainer: {
     position: 'absolute',
     bottom: 16,
     right: 16,
+    padding: 10, // give it a larger tap target
+  },
+  versionText: {
     fontSize: 12,
     color: '#94a3b8',
     fontWeight: '500',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  catBox: {
+    backgroundColor: '#fff',
+    padding: 24,
+    borderRadius: 16,
+    alignItems: 'center'
+  },
+  closeCat: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    padding: 4
   }
 });
