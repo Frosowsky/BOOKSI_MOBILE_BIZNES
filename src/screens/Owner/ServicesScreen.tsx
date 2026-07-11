@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, RefreshControl, TouchableOpacity, Modal, TextInput, Alert, ScrollView } from 'react-native';
 import api from '../../api/client';
-import { Clock, Plus, X, Trash2, Tag, Banknote, Edit3 } from 'lucide-react-native';
+import { Clock, Plus, X, Trash2, Tag, Banknote, Edit3, Search, ArrowDownAZ, LayoutList } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface ServiceDto {
@@ -42,6 +42,10 @@ export const ServicesScreen = () => {
   // Category form
   const [cName, setCName] = useState('');
   const [cDesc, setCDesc] = useState('');
+
+  // Search & Sort state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'category' | 'name'>('category');
 
   const fetchData = async () => {
     try {
@@ -161,11 +165,51 @@ export const ServicesScreen = () => {
     setServiceModalVisible(true);
   };
 
-  // Group services by category
-  const groupedData = categories.map(cat => ({
-    category: cat,
-    services: services.filter(s => s.categoryId === cat.id)
-  }));
+  const filteredServices = useMemo(() => {
+    const q = searchQuery.toLowerCase();
+    if (!q) return services;
+    return services.filter(s => s.name.toLowerCase().includes(q) || (s.description && s.description.toLowerCase().includes(q)));
+  }, [services, searchQuery]);
+
+  const groupedData = useMemo(() => {
+    if (sortBy === 'name') return [];
+    return categories.map(cat => ({
+      category: cat,
+      services: filteredServices.filter(s => s.categoryId === cat.id)
+    })).filter(g => g.services.length > 0 || !searchQuery);
+  }, [categories, filteredServices, sortBy, searchQuery]);
+
+  const sortedFlatServices = useMemo(() => {
+    if (sortBy === 'category') return [];
+    return [...filteredServices].sort((a, b) => a.name.localeCompare(b.name));
+  }, [filteredServices, sortBy]);
+
+  const renderServiceCard = useCallback((srv: ServiceDto) => (
+    <View key={srv.id} style={styles.card}>
+      <View style={{flex: 1}}>
+        <Text style={styles.name}>{srv.name}</Text>
+        {srv.description ? <Text style={styles.desc}>{srv.description}</Text> : null}
+        <View style={styles.footer}>
+          <View style={styles.infoRow}>
+            <Clock size={14} color="#64748b" style={{marginRight: 4}} />
+            <Text style={styles.infoText}>{srv.durationMinutes} min</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Banknote size={14} color="#10b981" style={{marginRight: 4}} />
+            <Text style={styles.priceText}>{srv.price} PLN</Text>
+          </View>
+        </View>
+      </View>
+      <View style={styles.actions}>
+        <TouchableOpacity onPress={() => handleEditServiceInit(srv)} style={styles.iconBtn}>
+          <Edit3 color="#64748b" size={20} />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => handleDeleteService(srv.id)} style={[styles.iconBtn, styles.deleteBtn]}>
+          <Trash2 color="#ef4444" size={20} />
+        </TouchableOpacity>
+      </View>
+    </View>
+  ), [handleDeleteService, handleEditServiceInit]);
 
   const renderCategory = useCallback(({ item }: { item: typeof groupedData[0] }) => (
     <View style={styles.categorySection}>
@@ -176,35 +220,10 @@ export const ServicesScreen = () => {
       {item.services.length === 0 ? (
         <Text style={styles.emptyCatText}>Brak usług w tej kategorii</Text>
       ) : (
-        item.services.map(srv => (
-          <View key={srv.id} style={styles.card}>
-            <View style={{flex: 1}}>
-              <Text style={styles.name}>{srv.name}</Text>
-              {srv.description ? <Text style={styles.desc}>{srv.description}</Text> : null}
-              <View style={styles.footer}>
-                <View style={styles.infoRow}>
-                  <Clock size={14} color="#64748b" style={{marginRight: 4}} />
-                  <Text style={styles.infoText}>{srv.durationMinutes} min</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <Banknote size={14} color="#10b981" style={{marginRight: 4}} />
-                  <Text style={styles.priceText}>{srv.price} PLN</Text>
-                </View>
-              </View>
-            </View>
-            <View style={styles.actions}>
-              <TouchableOpacity onPress={() => handleEditServiceInit(srv)} style={styles.iconBtn}>
-                <Edit3 color="#64748b" size={20} />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => handleDeleteService(srv.id)} style={[styles.iconBtn, styles.deleteBtn]}>
-                <Trash2 color="#ef4444" size={20} />
-              </TouchableOpacity>
-            </View>
-          </View>
-        ))
+        item.services.map(srv => renderServiceCard(srv))
       )}
     </View>
-  ), [handleDeleteService, handleEditServiceInit]);
+  ), [renderServiceCard]);
 
   if (loading) {
     return (
@@ -229,21 +248,70 @@ export const ServicesScreen = () => {
         </View>
       </View>
 
-      <FlatList
-        data={groupedData}
-        keyExtractor={item => item.category.id}
-        renderItem={renderCategory}
-        contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        ListEmptyComponent={
-          <View style={{marginTop: 40, alignItems: 'center'}}>
-            <Text style={styles.emptyText}>Brak kategorii i usług.</Text>
-            <TouchableOpacity style={[styles.addButton, {marginTop: 16}]} onPress={() => setCategoryModalVisible(true)}>
-              <Text style={styles.addButtonText}>Dodaj pierwszą kategorię</Text>
+      <View style={styles.toolsContainer}>
+        <View style={styles.searchBox}>
+          <Search color="#94a3b8" size={20} />
+          <TextInput 
+            style={styles.searchInput}
+            placeholder="Szukaj usługi..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <X color="#94a3b8" size={16} />
             </TouchableOpacity>
-          </View>
-        }
-      />
+          )}
+        </View>
+        <View style={styles.sortRow}>
+          <Text style={styles.sortLabel}>Sortuj:</Text>
+          <TouchableOpacity 
+            style={[styles.sortBtn, sortBy === 'category' && styles.sortBtnActive]} 
+            onPress={() => setSortBy('category')}
+          >
+            <LayoutList size={14} color={sortBy === 'category' ? '#ffffff' : '#64748b'} style={{marginRight: 4}} />
+            <Text style={[styles.sortText, sortBy === 'category' && styles.sortTextActive]}>Kategoriami</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.sortBtn, sortBy === 'name' && styles.sortBtnActive]} 
+            onPress={() => setSortBy('name')}
+          >
+            <ArrowDownAZ size={14} color={sortBy === 'name' ? '#ffffff' : '#64748b'} style={{marginRight: 4}} />
+            <Text style={[styles.sortText, sortBy === 'name' && styles.sortTextActive]}>Alfabetycznie</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {sortBy === 'category' ? (
+        <FlatList
+          data={groupedData}
+          keyExtractor={item => item.category.id}
+          renderItem={renderCategory}
+          contentContainerStyle={styles.list}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          ListEmptyComponent={
+            <View style={{marginTop: 40, alignItems: 'center'}}>
+              <Text style={styles.emptyText}>Brak kategorii i usług.</Text>
+              <TouchableOpacity style={[styles.addButton, {marginTop: 16}]} onPress={() => setCategoryModalVisible(true)}>
+                <Text style={styles.addButtonText}>Dodaj pierwszą kategorię</Text>
+              </TouchableOpacity>
+            </View>
+          }
+        />
+      ) : (
+        <FlatList
+          data={sortedFlatServices}
+          keyExtractor={item => item.id}
+          renderItem={({ item }) => renderServiceCard(item)}
+          contentContainerStyle={styles.list}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          ListEmptyComponent={
+            <View style={{marginTop: 40, alignItems: 'center'}}>
+              <Text style={styles.emptyText}>Brak usług spełniających kryteria.</Text>
+            </View>
+          }
+        />
+      )}
 
       {/* Modal - Dodaj Kategorię */}
       <Modal visible={categoryModalVisible} animationType="fade" transparent={true}>
@@ -319,6 +387,17 @@ const styles = StyleSheet.create({
   title: { fontSize: 20, fontWeight: 'bold', color: '#0f172a' },
   addButton: { flexDirection: 'row', backgroundColor: '#3b82f6', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, alignItems: 'center' },
   addButtonText: { color: '#ffffff', fontWeight: 'bold', marginLeft: 4 },
+  
+  toolsContainer: { padding: 16, backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
+  searchBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f1f5f9', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 12 },
+  searchInput: { flex: 1, marginLeft: 8, fontSize: 16, color: '#0f172a' },
+  sortRow: { flexDirection: 'row', alignItems: 'center' },
+  sortLabel: { fontSize: 14, color: '#64748b', marginRight: 12, fontWeight: '500' },
+  sortBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f1f5f9', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, marginRight: 8 },
+  sortBtnActive: { backgroundColor: '#3b82f6' },
+  sortText: { fontSize: 13, color: '#64748b', fontWeight: '500' },
+  sortTextActive: { color: '#ffffff', fontWeight: 'bold' },
+
   list: { padding: 16 },
   
   categorySection: { marginBottom: 24 },

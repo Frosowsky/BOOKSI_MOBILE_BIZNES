@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert, Modal, TextInput, ScrollView } from 'react-native';
 import api from '../../api/client';
-import { CreditCard, Plus, X, ArrowLeft, Gift } from 'lucide-react-native';
+import { CreditCard, Plus, X, ArrowLeft, Gift, Edit3, Trash2 } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 
@@ -19,6 +19,9 @@ export const LoyaltyCardsScreen = () => {
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
   const [name, setName] = useState('');
   const [pointsRequired, setPointsRequired] = useState('10');
   const [description, setDescription] = useState('');
@@ -42,23 +45,63 @@ export const LoyaltyCardsScreen = () => {
     init();
   }, []);
 
-  const handleAddReward = async () => {
+  const openNewRewardModal = () => {
+    setIsEditing(false);
+    setEditingId(null);
+    setName('');
+    setPointsRequired('10');
+    setDescription('');
+    setModalVisible(true);
+  };
+
+  const handleEditRewardInit = (reward: RewardDto) => {
+    setIsEditing(true);
+    setEditingId(reward.id);
+    setName(reward.name);
+    setPointsRequired(reward.pointsRequired.toString());
+    setDescription(reward.description || '');
+    setModalVisible(true);
+  };
+
+  const handleDeleteReward = (id: string) => {
+    Alert.alert('Potwierdzenie', 'Czy na pewno chcesz usunąć tę nagrodę?', [
+      { text: 'Anuluj', style: 'cancel' },
+      { text: 'Usuń', style: 'destructive', onPress: async () => {
+          try {
+            await api.delete(`/Loyalty/rewards/${id}`);
+            await fetchRewards();
+          } catch (e) {
+            Alert.alert('Błąd', 'Nie udało się usunąć nagrody');
+          }
+        }
+      }
+    ]);
+  };
+
+  const handleSaveReward = async () => {
     if (!name || !pointsRequired) return Alert.alert('Błąd', 'Wypełnij nazwę i punkty');
     setSubmitting(true);
     try {
-      await api.post('/Loyalty/rewards', { 
+      const payload = {
         name, 
         pointsRequired: parseInt(pointsRequired), 
         description,
         isActive: true
-      });
+      };
+
+      if (isEditing && editingId) {
+        await api.put(`/Loyalty/rewards/${editingId}`, { id: editingId, ...payload });
+      } else {
+        await api.post('/Loyalty/rewards', payload);
+      }
+
       setModalVisible(false);
       setName('');
       setPointsRequired('10');
       setDescription('');
       await fetchRewards();
     } catch (e) {
-      Alert.alert('Błąd', 'Nie udało się dodać nagrody');
+      Alert.alert('Błąd', 'Nie udało się zapisać nagrody');
     } finally {
       setSubmitting(false);
     }
@@ -67,13 +110,21 @@ export const LoyaltyCardsScreen = () => {
   const renderItem = useCallback(({ item }: { item: RewardDto }) => (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
-        <View style={{flexDirection: 'row', alignItems: 'center'}}>
+        <View style={{flexDirection: 'row', alignItems: 'center', flex: 1}}>
           <Gift size={20} color="#f59e0b" style={{marginRight: 8}} />
           <Text style={styles.name}>{item.name}</Text>
         </View>
-        <View style={styles.pointsBadge}>
-          <Text style={styles.pointsText}>{item.pointsRequired} pkt</Text>
+        <View style={styles.actions}>
+          <TouchableOpacity onPress={() => handleEditRewardInit(item)} style={styles.iconBtn}>
+            <Edit3 color="#64748b" size={18} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => handleDeleteReward(item.id)} style={[styles.iconBtn, styles.deleteBtn]}>
+            <Trash2 color="#ef4444" size={18} />
+          </TouchableOpacity>
         </View>
+      </View>
+      <View style={styles.pointsBadge}>
+        <Text style={styles.pointsText}>Wymagane punkty: {item.pointsRequired}</Text>
       </View>
       {item.description ? <Text style={styles.desc}>{item.description}</Text> : null}
     </View>
@@ -95,7 +146,7 @@ export const LoyaltyCardsScreen = () => {
         </TouchableOpacity>
         <Text style={styles.title}>Program Lojalnościowy</Text>
         <View style={{flex: 1}} />
-        <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
+        <TouchableOpacity style={styles.addButton} onPress={openNewRewardModal}>
           <Plus color="#ffffff" size={20} />
         </TouchableOpacity>
       </View>
@@ -115,7 +166,7 @@ export const LoyaltyCardsScreen = () => {
           <View style={styles.modalContent}>
             <ScrollView>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Nowa Nagroda</Text>
+                <Text style={styles.modalTitle}>{isEditing ? 'Edytuj Nagrodę' : 'Nowa Nagroda'}</Text>
                 <TouchableOpacity onPress={() => setModalVisible(false)}><X color="#64748b" size={24} /></TouchableOpacity>
               </View>
               
@@ -128,8 +179,8 @@ export const LoyaltyCardsScreen = () => {
               <Text style={styles.label}>Opis opcjonalny</Text>
               <TextInput style={styles.input} value={description} onChangeText={setDescription} placeholder="Opis nagrody" />
 
-              <TouchableOpacity style={styles.submitBtn} onPress={handleAddReward} disabled={submitting}>
-                {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>Dodaj Nagrodę</Text>}
+              <TouchableOpacity style={styles.submitBtn} onPress={handleSaveReward} disabled={submitting}>
+                {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>Zapisz Nagrodę</Text>}
               </TouchableOpacity>
             </ScrollView>
           </View>
@@ -150,7 +201,10 @@ const styles = StyleSheet.create({
   card: { backgroundColor: '#ffffff', borderRadius: 12, padding: 16, marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   name: { fontSize: 16, fontWeight: 'bold', color: '#1e293b' },
-  pointsBadge: { backgroundColor: '#fef3c7', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
+  actions: { flexDirection: 'row', alignItems: 'center' },
+  iconBtn: { padding: 6, backgroundColor: '#f1f5f9', borderRadius: 8, marginLeft: 8 },
+  deleteBtn: { backgroundColor: '#fef2f2' },
+  pointsBadge: { backgroundColor: '#fef3c7', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, alignSelf: 'flex-start', marginBottom: 8 },
   pointsText: { color: '#b45309', fontWeight: 'bold', fontSize: 13 },
   desc: { fontSize: 14, color: '#64748b' },
   emptyText: { textAlign: 'center', color: '#94a3b8', marginTop: 40 },

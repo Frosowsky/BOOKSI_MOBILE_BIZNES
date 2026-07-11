@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, Modal, TextInput, Alert } from 'react-native';
+import React, { useEffect, useState, useMemo } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, Modal, TextInput, Alert, Linking } from 'react-native';
 import api from '../../api/client';
-import { User, Phone, ChevronRight, Plus, X } from 'lucide-react-native';
+import { User, Phone, ChevronRight, Plus, X, Search, Mail, ArrowDownAZ, ArrowDown01 } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface ClientDto {
@@ -25,6 +25,10 @@ export const ClientsScreen = () => {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [creating, setCreating] = useState(false);
+
+  // Search & Sort state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'name' | 'visits'>('name');
 
   const fetchClients = async () => {
     try {
@@ -77,26 +81,70 @@ export const ClientsScreen = () => {
     }
   };
 
+  const handleCall = (phoneNumber: string) => {
+    Linking.openURL(`tel:${phoneNumber}`).catch(() => {
+      Alert.alert('Błąd', 'Nie można otworzyć aplikacji telefonu.');
+    });
+  };
+
+  const handleEmail = (emailAddr: string) => {
+    Linking.openURL(`mailto:${emailAddr}`).catch(() => {
+      Alert.alert('Błąd', 'Nie można otworzyć aplikacji e-mail.');
+    });
+  };
+
+  const processedClients = useMemo(() => {
+    let filtered = clients.filter(c => {
+      const q = searchQuery.toLowerCase();
+      const fullName = `${c.firstName} ${c.lastName}`.toLowerCase();
+      return fullName.includes(q) || 
+             (c.phoneNumber && c.phoneNumber.includes(q)) || 
+             (c.email && c.email.toLowerCase().includes(q));
+    });
+
+    return filtered.sort((a, b) => {
+      if (sortBy === 'name') {
+        const nameA = `${a.firstName} ${a.lastName}`.toLowerCase();
+        const nameB = `${b.firstName} ${b.lastName}`.toLowerCase();
+        return nameA.localeCompare(nameB);
+      } else {
+        return b.visitsCount - a.visitsCount;
+      }
+    });
+  }, [clients, searchQuery, sortBy]);
+
   const renderItem = ({ item }: { item: ClientDto }) => {
     return (
-      <TouchableOpacity style={styles.card}>
-        <View style={styles.cardLeft}>
+      <View style={styles.card}>
+        <View style={styles.cardTop}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>{item.firstName.charAt(0)}{item.lastName.charAt(0)}</Text>
           </View>
           <View style={styles.info}>
             <Text style={styles.name}>{item.firstName} {item.lastName}</Text>
-            {item.phoneNumber && (
-              <View style={styles.phoneRow}>
-                <Phone size={14} color="#64748b" style={{marginRight: 4}} />
-                <Text style={styles.phone}>{item.phoneNumber}</Text>
-              </View>
-            )}
             <Text style={styles.visits}>Ilość wizyt: {item.visitsCount}</Text>
           </View>
+          <ChevronRight color="#cbd5e1" size={24} />
         </View>
-        <ChevronRight color="#cbd5e1" size={24} />
-      </TouchableOpacity>
+        
+        {/* Contact Actions */}
+        {(item.phoneNumber || item.email) && (
+          <View style={styles.contactRow}>
+            {item.phoneNumber && (
+              <TouchableOpacity style={styles.contactBtn} onPress={() => handleCall(item.phoneNumber!)}>
+                <Phone size={14} color="#3b82f6" style={{marginRight: 6}} />
+                <Text style={styles.contactText}>{item.phoneNumber}</Text>
+              </TouchableOpacity>
+            )}
+            {item.email && (
+              <TouchableOpacity style={styles.contactBtn} onPress={() => handleEmail(item.email!)}>
+                <Mail size={14} color="#3b82f6" style={{marginRight: 6}} />
+                <Text style={styles.contactText} numberOfLines={1} ellipsizeMode="tail">{item.email}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+      </View>
     );
   };
 
@@ -118,14 +166,48 @@ export const ClientsScreen = () => {
         </TouchableOpacity>
       </View>
 
+      <View style={styles.toolsContainer}>
+        <View style={styles.searchBox}>
+          <Search color="#94a3b8" size={20} />
+          <TextInput 
+            style={styles.searchInput}
+            placeholder="Szukaj klienta..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <X color="#94a3b8" size={16} />
+            </TouchableOpacity>
+          )}
+        </View>
+        <View style={styles.sortRow}>
+          <Text style={styles.sortLabel}>Sortuj:</Text>
+          <TouchableOpacity 
+            style={[styles.sortBtn, sortBy === 'name' && styles.sortBtnActive]} 
+            onPress={() => setSortBy('name')}
+          >
+            <ArrowDownAZ size={14} color={sortBy === 'name' ? '#ffffff' : '#64748b'} style={{marginRight: 4}} />
+            <Text style={[styles.sortText, sortBy === 'name' && styles.sortTextActive]}>Alfabetycznie</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.sortBtn, sortBy === 'visits' && styles.sortBtnActive]} 
+            onPress={() => setSortBy('visits')}
+          >
+            <ArrowDown01 size={14} color={sortBy === 'visits' ? '#ffffff' : '#64748b'} style={{marginRight: 4}} />
+            <Text style={[styles.sortText, sortBy === 'visits' && styles.sortTextActive]}>Wg Wizyt</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <FlatList
-        data={clients}
+        data={processedClients}
         keyExtractor={item => item.id}
         renderItem={renderItem}
         contentContainerStyle={styles.list}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>Brak klientów w bazie.</Text>
+          <Text style={styles.emptyText}>Brak klientów spełniających kryteria.</Text>
         }
       />
 
@@ -176,16 +258,30 @@ const styles = StyleSheet.create({
   title: { fontSize: 20, fontWeight: 'bold', color: '#0f172a' },
   addButton: { flexDirection: 'row', backgroundColor: '#3b82f6', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, alignItems: 'center' },
   addButtonText: { color: '#ffffff', fontWeight: 'bold', marginLeft: 4 },
+  
+  toolsContainer: { padding: 16, backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
+  searchBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f1f5f9', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 12 },
+  searchInput: { flex: 1, marginLeft: 8, fontSize: 16, color: '#0f172a' },
+  sortRow: { flexDirection: 'row', alignItems: 'center' },
+  sortLabel: { fontSize: 14, color: '#64748b', marginRight: 12, fontWeight: '500' },
+  sortBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f1f5f9', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, marginRight: 8 },
+  sortBtnActive: { backgroundColor: '#3b82f6' },
+  sortText: { fontSize: 13, color: '#64748b', fontWeight: '500' },
+  sortTextActive: { color: '#ffffff', fontWeight: 'bold' },
+
   list: { padding: 16 },
-  card: { backgroundColor: '#ffffff', borderRadius: 12, padding: 16, marginBottom: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
-  cardLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  card: { backgroundColor: '#ffffff', borderRadius: 12, padding: 16, marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
+  cardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   avatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#e2e8f0', justifyContent: 'center', alignItems: 'center', marginRight: 16 },
   avatarText: { fontSize: 16, fontWeight: 'bold', color: '#475569', textTransform: 'uppercase' },
   info: { flex: 1 },
   name: { fontSize: 16, fontWeight: 'bold', color: '#1e293b', marginBottom: 4 },
-  phoneRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 2 },
-  phone: { fontSize: 14, color: '#475569' },
   visits: { fontSize: 13, color: '#94a3b8', marginTop: 2 },
+  
+  contactRow: { flexDirection: 'row', marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#f1f5f9' },
+  contactBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#eff6ff', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, marginRight: 8, flex: 1, justifyContent: 'center' },
+  contactText: { fontSize: 13, color: '#3b82f6', fontWeight: '500' },
+
   emptyText: { textAlign: 'center', color: '#94a3b8', marginTop: 40 },
   
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
@@ -199,3 +295,4 @@ const styles = StyleSheet.create({
   submitButtonDisabled: { backgroundColor: '#475569' },
   submitButtonText: { color: '#ffffff', fontSize: 16, fontWeight: '600' }
 });
+

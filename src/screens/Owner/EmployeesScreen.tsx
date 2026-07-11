@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, Modal, TextInput, Alert, ScrollView } from 'react-native';
 import api from '../../api/client';
-import { User, Phone, CheckCircle2, XCircle, Plus, X, Power, Calendar } from 'lucide-react-native';
+import { User, Phone, CheckCircle2, XCircle, Plus, X, Power, Calendar, Search, ArrowDownAZ } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -29,6 +29,10 @@ export const EmployeesScreen = () => {
   const [email, setEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [jobTitle, setJobTitle] = useState('');
+
+  // Search & Sort state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'lastName' | 'firstName'>('lastName');
 
   const fetchEmployees = useCallback(async () => {
     try {
@@ -103,6 +107,28 @@ export const EmployeesScreen = () => {
     );
   }, [fetchEmployees]);
 
+  const processedEmployees = useMemo(() => {
+    let filtered = employees.filter(e => {
+      const q = searchQuery.toLowerCase();
+      const fullName = `${e.firstName} ${e.lastName}`.toLowerCase();
+      return fullName.includes(q) || 
+             (e.jobTitle && e.jobTitle.toLowerCase().includes(q)) || 
+             (e.email && e.email.toLowerCase().includes(q));
+    });
+
+    return filtered.sort((a, b) => {
+      if (sortBy === 'lastName') {
+        const nameA = `${a.lastName} ${a.firstName}`.toLowerCase();
+        const nameB = `${b.lastName} ${b.firstName}`.toLowerCase();
+        return nameA.localeCompare(nameB);
+      } else {
+        const nameA = `${a.firstName} ${a.lastName}`.toLowerCase();
+        const nameB = `${b.firstName} ${b.lastName}`.toLowerCase();
+        return nameA.localeCompare(nameB);
+      }
+    });
+  }, [employees, searchQuery, sortBy]);
+
   const renderItem = useCallback(({ item }: { item: EmployeeDto }) => {
     return (
       <View style={styles.card}>
@@ -158,8 +184,43 @@ export const EmployeesScreen = () => {
           <Text style={styles.addButtonText}>Dodaj</Text>
         </TouchableOpacity>
       </View>
+
+      <View style={styles.toolsContainer}>
+        <View style={styles.searchBox}>
+          <Search color="#94a3b8" size={20} />
+          <TextInput 
+            style={styles.searchInput}
+            placeholder="Szukaj pracownika..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <X color="#94a3b8" size={16} />
+            </TouchableOpacity>
+          )}
+        </View>
+        <View style={styles.sortRow}>
+          <Text style={styles.sortLabel}>Sortuj:</Text>
+          <TouchableOpacity 
+            style={[styles.sortBtn, sortBy === 'lastName' && styles.sortBtnActive]} 
+            onPress={() => setSortBy('lastName')}
+          >
+            <ArrowDownAZ size={14} color={sortBy === 'lastName' ? '#ffffff' : '#64748b'} style={{marginRight: 4}} />
+            <Text style={[styles.sortText, sortBy === 'lastName' && styles.sortTextActive]}>Po Nazwisku</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.sortBtn, sortBy === 'firstName' && styles.sortBtnActive]} 
+            onPress={() => setSortBy('firstName')}
+          >
+            <ArrowDownAZ size={14} color={sortBy === 'firstName' ? '#ffffff' : '#64748b'} style={{marginRight: 4}} />
+            <Text style={[styles.sortText, sortBy === 'firstName' && styles.sortTextActive]}>Po Imieniu</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <FlatList
-        data={employees}
+        data={processedEmployees}
         keyExtractor={item => item.id}
         renderItem={renderItem}
         contentContainerStyle={styles.list}
@@ -213,6 +274,17 @@ const styles = StyleSheet.create({
   title: { fontSize: 20, fontWeight: 'bold', color: '#0f172a' },
   addButton: { flexDirection: 'row', backgroundColor: '#3b82f6', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, alignItems: 'center' },
   addButtonText: { color: '#ffffff', fontWeight: 'bold', marginLeft: 4 },
+  
+  toolsContainer: { padding: 16, backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
+  searchBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f1f5f9', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 12 },
+  searchInput: { flex: 1, marginLeft: 8, fontSize: 16, color: '#0f172a' },
+  sortRow: { flexDirection: 'row', alignItems: 'center' },
+  sortLabel: { fontSize: 14, color: '#64748b', marginRight: 12, fontWeight: '500' },
+  sortBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f1f5f9', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, marginRight: 8 },
+  sortBtnActive: { backgroundColor: '#3b82f6' },
+  sortText: { fontSize: 13, color: '#64748b', fontWeight: '500' },
+  sortTextActive: { color: '#ffffff', fontWeight: 'bold' },
+
   list: { padding: 16 },
   card: { backgroundColor: '#ffffff', borderRadius: 12, padding: 16, marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
