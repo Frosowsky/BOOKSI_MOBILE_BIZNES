@@ -128,10 +128,13 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     setTenantId(null);
   };
 
-  const enableBiometric = async (token: string, refreshToken: string) => {
+  const enableBiometric = async (token: string, refreshToken: string, isPasswordLogin: boolean = false) => {
     try {
       await SecureStore.setItemAsync('biometric_token', token);
       await SecureStore.setItemAsync('biometric_refresh_token', refreshToken);
+      if (isPasswordLogin) {
+        await SecureStore.setItemAsync('biometric_last_password_date', new Date().toISOString());
+      }
     } catch (e) {
       console.error('Error enabling biometrics', e);
     }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Modal, Image, Pressable } from 'react-native';
-import { LogIn, Fingerprint, X } from 'lucide-react-native';
+import { LogIn, Fingerprint, X, Eye, EyeOff } from 'lucide-react-native';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
 import api from '../../api/client';
@@ -10,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 export const LoginScreen = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isBiometricSupported, setIsBiometricSupported] = useState(false);
   const [hasBiometricRecord, setHasBiometricRecord] = useState(false);
@@ -27,7 +28,23 @@ export const LoginScreen = () => {
       if (compatible && enrolled) {
         setIsBiometricSupported(true);
         const storedRefreshToken = await SecureStore.getItemAsync('biometric_refresh_token');
+        const lastPasswordDateStr = await SecureStore.getItemAsync('biometric_last_password_date');
+
         if (storedRefreshToken) {
+          if (lastPasswordDateStr) {
+            const lastDate = new Date(lastPasswordDateStr);
+            const now = new Date();
+            const daysDiff = (now.getTime() - lastDate.getTime()) / (1000 * 3600 * 24);
+            if (daysDiff > 30) {
+              setHasBiometricRecord(false);
+              Alert.alert('Czas na zmianę!', 'Ze względów bezpieczeństwa, co 30 dni wymagane jest ponowne logowanie hasłem.');
+              return;
+            }
+          } else {
+            // No date recorded -> require password login once
+            return;
+          }
+
           setHasBiometricRecord(true);
           handleBiometricLogin();
         }
@@ -98,7 +115,7 @@ export const LoginScreen = () => {
             { 
               text: 'Tak', 
               onPress: async () => {
-                await enableBiometric(token, refreshToken);
+                await enableBiometric(token, refreshToken, true);
                 setHasBiometricRecord(true);
                 signIn(token, refreshToken, salonId, salonId);
               }
@@ -107,7 +124,7 @@ export const LoginScreen = () => {
         );
       } else {
         if (hasBiometricRecord) {
-          await enableBiometric(token, refreshToken);
+          await enableBiometric(token, refreshToken, true);
         }
         await signIn(token, refreshToken, salonId, salonId);
       }
@@ -157,14 +174,19 @@ export const LoginScreen = () => {
 
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Hasło</Text>
-            <TextInput
-              style={styles.input}
-              value={password}
-              onChangeText={setPassword}
-              placeholder="Wprowadź hasło"
-              secureTextEntry
-              editable={!loading}
-            />
+            <View style={[styles.input, { flexDirection: 'row', alignItems: 'center', padding: 0 }]}>
+              <TextInput
+                style={{ flex: 1, padding: 12, fontSize: 16, color: '#0f172a' }}
+                value={password}
+                onChangeText={setPassword}
+                placeholder="Wprowadź hasło"
+                secureTextEntry={!showPassword}
+                editable={!loading}
+              />
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={{ padding: 12 }}>
+                {showPassword ? <EyeOff color="#64748b" size={20} /> : <Eye color="#64748b" size={20} />}
+              </TouchableOpacity>
+            </View>
           </View>
 
           <TouchableOpacity 
