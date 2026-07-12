@@ -207,7 +207,10 @@ export const RootNavigator = () => {
               </>
             )}
             {userRole === 'SalonEmployee' && (
-              <Stack.Screen name="EmployeeApp" component={EmployeeNavigator} />
+              <>
+                <Stack.Screen name="EmployeeApp" component={EmployeeNavigator} />
+                <Stack.Screen name="Messages" component={MessagesScreen} />
+              </>
             )}
             {userRole === 'Salesperson' && (
               <Stack.Screen name="SalespersonApp" component={SalespersonNavigator} />

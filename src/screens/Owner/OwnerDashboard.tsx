@@ -52,7 +52,9 @@ const EmployeeCard = memo(({ emp, onTaskPress }: { emp: EmployeeSchedule, onTask
           >
             <View style={styles.taskTimeBox}>
               <Clock size={14} color={colors.textMuted} style={{marginRight: 4}}/>
-              <Text style={[styles.taskTime, { color: colors.textMuted }]}>{task.time}</Text>
+              <Text style={[styles.taskTime, { color: colors.textMuted }]}>
+                {task.time && task.time.includes('T') ? new Date(task.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : task.time}
+              </Text>
             </View>
             <View style={styles.taskInfo}>
               <Text style={[styles.taskTitle, { color: colors.text }]}>

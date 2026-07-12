@@ -4,6 +4,7 @@ import api from '../../api/client';
 import { Clock, Plus, X, Trash2, Tag, Banknote, Edit3, Search, ArrowDownAZ, LayoutList } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useThemeColors } from '../../theme/useThemeColors';
+import { useAuth } from '../../context/AuthContext';
 
 interface ServiceDto {
   id: string;
@@ -22,6 +23,7 @@ interface CategoryDto {
 }
 
 export const ServicesScreen = () => {
+  const { userRole } = useAuth();
   const { colors, isDark } = useThemeColors();
   const [services, setServices] = useState<ServiceDto[]>([]);
   const [categories, setCategories] = useState<CategoryDto[]>([]);
@@ -290,16 +292,18 @@ export const ServicesScreen = () => {
           </View>
         </View>
       </View>
-      <View style={styles.actions}>
-        <TouchableOpacity onPress={() => handleEditServiceInit(srv)} style={[styles.iconBtn, { backgroundColor: colors.background }]}>
-          <Edit3 color={colors.textMuted} size={20} />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => handleDeleteService(srv.id)} style={[styles.iconBtn, styles.deleteBtn]}>
-          <Trash2 color={colors.error} size={20} />
-        </TouchableOpacity>
-      </View>
+      {userRole === 'SalonOwner' && (
+        <View style={styles.actions}>
+          <TouchableOpacity onPress={() => handleEditServiceInit(srv)} style={[styles.iconBtn, { backgroundColor: colors.background }]}>
+            <Edit3 color={colors.textMuted} size={20} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => handleDeleteService(srv.id)} style={[styles.iconBtn, styles.deleteBtn]}>
+            <Trash2 color={colors.error} size={20} />
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
-  ), [handleDeleteService, handleEditServiceInit, colors, isDark]);
+  ), [handleDeleteService, handleEditServiceInit, colors, isDark, userRole]);
 
   const renderCategory = useCallback(({ item }: { item: typeof groupedData[0] }) => (
     <View style={styles.categorySection}>
@@ -327,15 +331,17 @@ export const ServicesScreen = () => {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <Text style={[styles.title, { color: colors.text }]}>Usługi Salonu</Text>
-        <View style={styles.headerActions}>
-          <TouchableOpacity style={[styles.addButton, { backgroundColor: colors.primary }]} onPress={() => setCategoryModalVisible(true)}>
-            <Tag color="#ffffff" size={16} />
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.addButton, {marginLeft: 8, backgroundColor: colors.primary}]} onPress={openNewServiceModal}>
-            <Plus color="#ffffff" size={16} />
-            <Text style={styles.addButtonText}>Dodaj</Text>
-          </TouchableOpacity>
-        </View>
+        {userRole === 'SalonOwner' && (
+          <View style={styles.headerActions}>
+            <TouchableOpacity style={[styles.addButton, { backgroundColor: colors.primary }]} onPress={() => setCategoryModalVisible(true)}>
+              <Tag color="#ffffff" size={16} />
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.addButton, {marginLeft: 8, backgroundColor: colors.primary}]} onPress={openNewServiceModal}>
+              <Plus color="#ffffff" size={16} />
+              <Text style={styles.addButtonText}>Dodaj</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
 
       <View style={[styles.toolsContainer, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
@@ -383,9 +389,11 @@ export const ServicesScreen = () => {
           ListEmptyComponent={
             <View style={{marginTop: 40, alignItems: 'center'}}>
               <Text style={styles.emptyText}>Brak kategorii i usług.</Text>
-              <TouchableOpacity style={[styles.addButton, {marginTop: 16}]} onPress={() => setCategoryModalVisible(true)}>
-                <Text style={styles.addButtonText}>Dodaj pierwszą kategorię</Text>
-              </TouchableOpacity>
+              {userRole === 'SalonOwner' && (
+                <TouchableOpacity style={[styles.addButton, {marginTop: 16}]} onPress={() => setCategoryModalVisible(true)}>
+                  <Text style={styles.addButtonText}>Dodaj pierwszą kategorię</Text>
+                </TouchableOpacity>
+              )}
             </View>
           }
         />

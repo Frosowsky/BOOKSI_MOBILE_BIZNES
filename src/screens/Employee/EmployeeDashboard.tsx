@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
-import { LogOut, Calendar as CalendarIcon, Clock } from 'lucide-react-native';
+import { LogOut, Calendar as CalendarIcon, Clock, MessageSquare } from 'lucide-react-native';
 import api from '../../api/client';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 interface EmployeeTask {
   id: string;
@@ -26,6 +28,9 @@ export const EmployeeDashboard = () => {
   const [schedules, setSchedules] = useState<EmployeeSchedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [hasMessagesAccess, setHasMessagesAccess] = useState(false);
+
+  const navigation = useNavigation<NativeStackNavigationProp<any>>();
 
   const fetchData = async () => {
     try {
@@ -36,16 +41,26 @@ export const EmployeeDashboard = () => {
     }
   };
 
+  const fetchMe = async () => {
+    try {
+      const res = await api.get('/employees/me');
+      setHasMessagesAccess(res.data?.hasMessagesAccess || false);
+    } catch (e) {
+      console.error('Error fetching employee me data:', e);
+    }
+  };
+
   const onRefresh = async () => {
     setRefreshing(true);
     await fetchData();
+    await fetchMe();
     setRefreshing(false);
   };
 
   useEffect(() => {
     const init = async () => {
       setLoading(true);
-      await fetchData();
+      await Promise.all([fetchData(), fetchMe()]);
       setLoading(false);
     };
     init();
@@ -79,6 +94,18 @@ export const EmployeeDashboard = () => {
           <Text style={styles.welcomeSubtitle}>Poniżej znajduje się lista wszystkich dzisiejszych wizyt w salonie.</Text>
         </View>
 
+        {hasMessagesAccess && (
+          <View style={{ marginBottom: 20 }}>
+            <Text style={styles.sectionTitle}>Narzędzia</Text>
+            <TouchableOpacity style={styles.toolTile} onPress={() => navigation.navigate('Messages')}>
+              <View style={styles.toolIconBox}>
+                <MessageSquare size={24} color={'#3b82f6'} />
+              </View>
+              <Text style={styles.toolTitle}>Wiadomości</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         <Text style={styles.sectionTitle}>Grafik na dziś</Text>
         {schedules.map((emp) => (
           <View key={emp.employeeId} style={styles.employeeCard}>
@@ -90,7 +117,9 @@ export const EmployeeDashboard = () => {
                 <View key={task.id} style={styles.taskItem}>
                   <View style={styles.taskTimeBox}>
                     <Clock size={14} color="#64748b" style={{marginRight: 4}}/>
-                    <Text style={styles.taskTime}>{task.time}</Text>
+                    <Text style={styles.taskTime}>
+                      {task.time && task.time.includes('T') ? new Date(task.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : task.time}
+                    </Text>
                   </View>
                   <View style={styles.taskInfo}>
                     <Text style={styles.taskTitle}>
@@ -120,6 +149,9 @@ const styles = StyleSheet.create({
   welcomeTitle: { fontSize: 18, fontWeight: 'bold', color: '#1e293b', marginBottom: 8 },
   welcomeSubtitle: { fontSize: 14, color: '#64748b', textAlign: 'center' },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#1e293b', marginTop: 8, marginBottom: 12 },
+  toolTile: { alignItems: 'center', backgroundColor: '#ffffff', borderRadius: 12, padding: 16, width: 100, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
+  toolIconBox: { width: 48, height: 48, borderRadius: 12, backgroundColor: '#eff6ff', justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
+  toolTitle: { fontSize: 12, fontWeight: '500', color: '#475569', textAlign: 'center' },
   employeeCard: { backgroundColor: '#ffffff', borderRadius: 12, padding: 16, marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
   employeeName: { fontSize: 16, fontWeight: '600', color: '#0f172a', marginBottom: 12 },
   noTasks: { color: '#94a3b8', fontStyle: 'italic' },
