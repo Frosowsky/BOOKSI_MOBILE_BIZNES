@@ -44,8 +44,9 @@ export const AppointmentDetailsScreen = () => {
 
   const handleComplete = async () => {
     try {
-      // Zakładam, że endpoint do zrealizowania to PUT z statusem 3 lub podobnie, ale bez backendu użyjemy PUT /Appointments/{id}
-      Alert.alert('Info', 'Funkcja zrealizowania wizyty w trakcie przygotowania na backendzie.');
+      await api.post(`/Appointments/${appointment.id}/complete`);
+      Alert.alert('Sukces', 'Wizyta zrealizowana!');
+      navigation.goBack();
     } catch (e) {
       Alert.alert('Błąd', 'Nie udało się zrealizować wizyty.');
     }
