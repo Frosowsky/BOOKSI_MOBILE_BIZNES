@@ -2,6 +2,8 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, Modal, TextInput, Alert, Linking } from 'react-native';
 import api from '../../api/client';
 import { User, Phone, ChevronRight, Plus, X, Search, Mail, ArrowDownAZ, ArrowDown01 } from 'lucide-react-native';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useThemeColors } from '../../theme/useThemeColors';
 interface ClientDto {
@@ -10,11 +12,12 @@ interface ClientDto {
   lastName: string;
   phoneNumber?: string;
   email?: string;
-  visitsCount: number;
+  totalVisits: number;
 }
 
 export const ClientsScreen = () => {
   const { colors, isDark } = useThemeColors();
+  const navigation = useNavigation<NativeStackNavigationProp<any>>();
   const [clients, setClients] = useState<ClientDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -120,24 +123,27 @@ export const ClientsScreen = () => {
         const nameB = `${b.firstName} ${b.lastName}`.toLowerCase();
         return nameA.localeCompare(nameB) * multiplier;
       } else {
-        return (a.visitsCount - b.visitsCount) * multiplier;
+        return (a.totalVisits - b.totalVisits) * multiplier;
       }
     });
   }, [clients, searchQuery, sortBy, sortOrder]);
 
   const renderItem = ({ item }: { item: ClientDto }) => {
     return (
-    <View style={[styles.card, { backgroundColor: colors.surface, shadowColor: colors.cardShadow }]}>
-        <View style={styles.cardTop}>
+      <View style={[styles.card, { backgroundColor: colors.surface, shadowColor: colors.cardShadow }]}>
+        <TouchableOpacity 
+          style={styles.cardTop} 
+          onPress={() => navigation.navigate('ClientDetails', { clientId: item.id })}
+        >
           <View style={[styles.avatar, { backgroundColor: isDark ? '#334155' : '#e2e8f0' }]}>
             <Text style={[styles.avatarText, { color: isDark ? '#cbd5e1' : '#475569' }]}>{item.firstName.charAt(0)}{item.lastName.charAt(0)}</Text>
           </View>
           <View style={styles.info}>
             <Text style={[styles.name, { color: colors.text }]}>{item.firstName} {item.lastName}</Text>
-            <Text style={[styles.visits, { color: colors.textMuted }]}>Ilość wizyt: {item.visitsCount}</Text>
+            <Text style={[styles.visits, { color: colors.textMuted }]}>Ilość wizyt: {item.totalVisits}</Text>
           </View>
           <ChevronRight color={colors.textMuted} size={24} />
-        </View>
+        </TouchableOpacity>
         
         {/* Contact Actions */}
         {(item.phoneNumber || item.email) && (

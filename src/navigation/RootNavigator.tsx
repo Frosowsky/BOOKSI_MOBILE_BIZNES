@@ -14,6 +14,7 @@ import { SalespersonDashboard } from '../screens/Sales/SalespersonDashboard';
 import { AppointmentsScreen } from '../screens/Shared/AppointmentsScreen';
 import { NewAppointmentScreen } from '../screens/Shared/NewAppointmentScreen';
 import { AppointmentDetailsScreen } from '../screens/Shared/AppointmentDetailsScreen';
+import { ClientDetailsScreen } from '../screens/Owner/ClientDetailsScreen';
 import { ClientsScreen } from '../screens/Owner/ClientsScreen';
 import { EmployeesScreen } from '../screens/Owner/EmployeesScreen';
 import { ServicesScreen } from '../screens/Owner/ServicesScreen';
@@ -43,6 +44,7 @@ export type RootStackParamList = {
   SetupWizard: undefined;
   EmployeeSchedule: { employeeId: string; employeeName: string };
   AppointmentDetails: { appointment: any };
+  ClientDetails: { clientId: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -218,6 +220,11 @@ export const RootNavigator = () => {
             <Stack.Screen 
               name="AppointmentDetails" 
               component={AppointmentDetailsScreen} 
+              options={{ presentation: 'modal' }} 
+            />
+            <Stack.Screen 
+              name="ClientDetails" 
+              component={ClientDetailsScreen} 
               options={{ presentation: 'modal' }} 
             />
           </>
