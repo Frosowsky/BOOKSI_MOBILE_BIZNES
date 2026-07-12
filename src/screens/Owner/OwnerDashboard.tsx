@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, memo } from 'react';
+import React, { useEffect, useState, useCallback, memo, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl, Alert } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import { LogOut, TrendingUp, Users, Calendar as CalendarIcon, Clock, Megaphone, MessageSquare, CreditCard, ClipboardList, BarChart2, Settings } from 'lucide-react-native';
@@ -85,7 +85,21 @@ export const OwnerDashboard = () => {
         api.get('/Appointments')
       ]);
       setStats(statsRes.data);
-      setSchedules(apptsRes.data);
+      const schedulesWithLocalTime = apptsRes.data.map((emp: EmployeeSchedule) => {
+        return {
+          ...emp,
+          tasks: emp.tasks.map(task => {
+            if (task.time.includes('T')) {
+              const d = new Date(task.time);
+              const hh = d.getHours().toString().padStart(2, '0');
+              const mm = d.getMinutes().toString().padStart(2, '0');
+              return { ...task, time: `${hh}:${mm}` };
+            }
+            return task;
+          })
+        };
+      });
+      setSchedules(schedulesWithLocalTime);
       setAppointments(fullApptsRes.data);
     } catch (e) {
       console.error('Error fetching owner dashboard data:', e);
@@ -153,6 +167,42 @@ export const OwnerDashboard = () => {
       CallerIdService.stopListening();
     };
   }, []);
+
+  const currentOrNextTask = useMemo(() => {
+    const now = new Date();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    
+    let closestTask: EmployeeTask | null = null;
+    let closestEmpName: string | null = null;
+    let minDiff = Infinity;
+
+    schedules.forEach(emp => {
+      emp.tasks.forEach(task => {
+        if (task.isCustom) return;
+        const [h, m] = task.time.split(':').map(Number);
+        const startMins = h * 60 + m;
+        const endMins = startMins + task.duration;
+
+        if (currentMinutes >= startMins && currentMinutes < endMins) {
+          const diff = -1;
+          if (diff < minDiff) {
+            minDiff = diff;
+            closestTask = task;
+            closestEmpName = emp.employeeName;
+          }
+        } else if (startMins >= currentMinutes) {
+          const diff = startMins - currentMinutes;
+          if (diff < minDiff) {
+            minDiff = diff;
+            closestTask = task;
+            closestEmpName = emp.employeeName;
+          }
+        }
+      });
+    });
+    
+    return closestTask ? { task: closestTask, employeeName: closestEmpName } : null;
+  }, [schedules]);
 
   if (loading) {
     return (
@@ -237,15 +287,13 @@ export const OwnerDashboard = () => {
             color="#3b82f6" 
           />
         </View>
-        <View style={styles.statsRow}>
+        <View style={[styles.statsRow, { marginTop: 12 }]}>
           <StatCard 
             title="Wizyty dziś" 
             value={stats?.appointmentsToday || 0} 
             icon={CalendarIcon} 
             color="#8b5cf6" 
           />
-        </View>
-        <View style={styles.statsRow}>
           <StatCard 
             title="Nowi Klienci" 
             value={stats?.newClients || 0} 
@@ -255,6 +303,27 @@ export const OwnerDashboard = () => {
         </View>
 
         <Text style={[styles.sectionTitle, { color: colors.text }]}>Grafik na dziś</Text>
+        
+        {currentOrNextTask && (
+          <View style={{ marginBottom: 16 }}>
+            <Text style={{ fontSize: 14, fontWeight: '600', color: colors.primary, marginBottom: 8 }}>Trwająca / Następna Wizyta ({currentOrNextTask.employeeName})</Text>
+            <TouchableOpacity 
+              style={[styles.taskItem, { backgroundColor: isDark ? '#1e3a8a' : '#eff6ff', borderRadius: 12, padding: 16, borderTopWidth: 0, shadowColor: colors.primary, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 }]}
+              onPress={() => handleTaskPress(currentOrNextTask.task)}
+            >
+              <View style={styles.taskTimeBox}>
+                <Clock size={14} color={colors.primary} style={{marginRight: 4}}/>
+                <Text style={[styles.taskTime, { color: colors.primary }]}>{currentOrNextTask.task.time}</Text>
+              </View>
+              <View style={styles.taskInfo}>
+                <Text style={[styles.taskTitle, { color: colors.text, fontWeight: '700' }]}>{currentOrNextTask.task.title}</Text>
+                {currentOrNextTask.task.client && <Text style={[styles.taskClient, { color: colors.textMuted }]}>{currentOrNextTask.task.client}</Text>}
+              </View>
+              <Text style={[styles.taskDuration, { color: colors.primary }]}>{currentOrNextTask.task.duration} min</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {schedules.map((emp) => (
           <EmployeeCard key={emp.employeeId} emp={emp} onTaskPress={handleTaskPress} />
         ))}
