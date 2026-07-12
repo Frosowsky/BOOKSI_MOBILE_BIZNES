@@ -6,28 +6,42 @@ import api from '../../api/client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CallerIdService } from '../../services/CallerIdService';
 import { useThemeColors } from '../../theme/useThemeColors';
+import { Picker } from '@react-native-picker/picker';
 
 interface SalonSettings {
   autoConfirmAppointments: boolean;
   isCallerIdEnabled: boolean;
   isWaitlistAutoFillEnabled: boolean;
   waitlistMatchingStrategy: number;
+  businessCategoryId?: string;
 }
 
 export const SettingsScreen = () => {
   const { colors, isDark, mode, setThemeMode } = useThemeColors();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [categories, setCategories] = useState<any[]>([]);
   const [settings, setSettings] = useState<SalonSettings>({
     autoConfirmAppointments: true,
     isCallerIdEnabled: false,
     isWaitlistAutoFillEnabled: false,
-    waitlistMatchingStrategy: 0
+    waitlistMatchingStrategy: 0,
+    businessCategoryId: undefined
   });
 
   useEffect(() => {
+    fetchCategories();
     fetchSettings();
   }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const res = await api.get('/public/categories');
+      setCategories(res.data || []);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
 
   const fetchSettings = async () => {
     try {
@@ -40,7 +54,8 @@ export const SettingsScreen = () => {
           autoConfirmAppointments: res.data.autoConfirmAppointments !== undefined ? res.data.autoConfirmAppointments : true,
           isCallerIdEnabled: callerIdStr === 'true',
           isWaitlistAutoFillEnabled: res.data.isWaitlistAutoFillEnabled || false,
-          waitlistMatchingStrategy: res.data.waitlistMatchingStrategy || 0
+          waitlistMatchingStrategy: res.data.waitlistMatchingStrategy || 0,
+          businessCategoryId: res.data.businessCategoryId
         });
       }
     } catch (error) {
@@ -70,7 +85,8 @@ export const SettingsScreen = () => {
       const remoteSettings = {
         autoConfirmAppointments: settings.autoConfirmAppointments,
         isWaitlistAutoFillEnabled: settings.isWaitlistAutoFillEnabled,
-        waitlistMatchingStrategy: settings.waitlistMatchingStrategy
+        waitlistMatchingStrategy: settings.waitlistMatchingStrategy,
+        businessCategoryId: settings.businessCategoryId
       };
       await api.put('/salons/me/settings', remoteSettings);
       
@@ -99,6 +115,22 @@ export const SettingsScreen = () => {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
+        <View style={[styles.card, { backgroundColor: colors.surface, shadowColor: colors.cardShadow }]}>
+          <Text style={[styles.settingTitle, { color: colors.text, marginBottom: 12 }]}>Kategoria działalności</Text>
+          <View style={[styles.pickerContainer, { borderColor: colors.border }]}>
+            <Picker
+              selectedValue={settings.businessCategoryId || ''}
+              onValueChange={(itemValue) => setSettings({ ...settings, businessCategoryId: itemValue })}
+              style={{ color: colors.text }}
+              dropdownIconColor={colors.text}
+            >
+              <Picker.Item label="-- Wybierz kategorię --" value="" color={colors.text + '80'} />
+              {categories.map(c => (
+                <Picker.Item key={c.id} label={c.name} value={c.id} color={colors.text} />
+              ))}
+            </Picker>
+          </View>
+        </View>
         <View style={[styles.card, { backgroundColor: colors.surface, shadowColor: colors.cardShadow }]}>
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
@@ -278,4 +310,5 @@ const styles = StyleSheet.create({
   strategyText: { fontSize: 13 },
   themeOption: { flex: 1, paddingVertical: 10, borderRadius: 8, borderWidth: 1, marginHorizontal: 4, alignItems: 'center' },
   themeText: { fontSize: 14 },
+  pickerContainer: { borderWidth: 1, borderRadius: 8, overflow: 'hidden' },
 });
