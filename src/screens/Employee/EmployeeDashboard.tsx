@@ -12,6 +12,7 @@ interface EmployeeTask {
   title: string;
   client: string | null;
   isCustom: boolean;
+  price?: number;
 }
 
 interface EmployeeSchedule {
@@ -92,7 +93,10 @@ export const EmployeeDashboard = () => {
                     <Text style={styles.taskTime}>{task.time}</Text>
                   </View>
                   <View style={styles.taskInfo}>
-                    <Text style={styles.taskTitle}>{task.title}</Text>
+                    <Text style={styles.taskTitle}>
+                      {task.title}
+                      {task.price != null && task.price > 0 ? ` (${task.price} zł)` : ''}
+                    </Text>
                     {task.client && <Text style={styles.taskClient}>{task.client}</Text>}
                   </View>
                   <Text style={styles.taskDuration}>{task.duration} min</Text>

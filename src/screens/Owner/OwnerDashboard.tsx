@@ -26,6 +26,7 @@ interface EmployeeTask {
   title: string;
   client: string | null;
   isCustom: boolean;
+  price?: number;
 }
 
 interface EmployeeSchedule {
@@ -54,7 +55,10 @@ const EmployeeCard = memo(({ emp, onTaskPress }: { emp: EmployeeSchedule, onTask
               <Text style={[styles.taskTime, { color: colors.textMuted }]}>{task.time}</Text>
             </View>
             <View style={styles.taskInfo}>
-              <Text style={[styles.taskTitle, { color: colors.text }]}>{task.title}</Text>
+              <Text style={[styles.taskTitle, { color: colors.text }]}>
+                {task.title}
+                {task.price != null && task.price > 0 ? ` (${task.price} zł)` : ''}
+              </Text>
               {task.client && <Text style={[styles.taskClient, { color: colors.textMuted }]}>{task.client}</Text>}
             </View>
             <Text style={[styles.taskDuration, { color: colors.textMuted }]}>{task.duration} min</Text>
@@ -316,7 +320,10 @@ export const OwnerDashboard = () => {
                 <Text style={[styles.taskTime, { color: colors.primary }]}>{currentOrNextTask.task.time}</Text>
               </View>
               <View style={styles.taskInfo}>
-                <Text style={[styles.taskTitle, { color: colors.text, fontWeight: '700' }]}>{currentOrNextTask.task.title}</Text>
+                <Text style={[styles.taskTitle, { color: colors.text, fontWeight: '700' }]}>
+                  {currentOrNextTask.task.title}
+                  {currentOrNextTask.task.price != null && currentOrNextTask.task.price > 0 ? ` (${currentOrNextTask.task.price} zł)` : ''}
+                </Text>
                 {currentOrNextTask.task.client && <Text style={[styles.taskClient, { color: colors.textMuted }]}>{currentOrNextTask.task.client}</Text>}
               </View>
               <Text style={[styles.taskDuration, { color: colors.primary }]}>{currentOrNextTask.task.duration} min</Text>

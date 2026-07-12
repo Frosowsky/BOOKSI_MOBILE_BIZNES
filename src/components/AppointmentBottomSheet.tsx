@@ -41,7 +41,10 @@ export const AppointmentBottomSheet = ({ isVisible, onClose, appointment, onAppr
                     </View>
                   ) : null}
                 </View>
-                <Text style={{ color: colors.textMuted, fontSize: 14 }}>{appointment.serviceName}</Text>
+                <Text style={{ color: colors.textMuted, fontSize: 14 }}>
+                  {appointment.serviceName}
+                  {appointment.price != null && appointment.price > 0 ? ` (${appointment.price} zł)` : ''}
+                </Text>
                 <Text style={{ color: colors.textMuted, fontSize: 14, marginBottom: 16 }}>
                   {new Date(appointment.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(appointment.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </Text>
