@@ -182,9 +182,9 @@ export const OwnerDashboard = () => {
     let closestEmpName: string | null = null;
     let minDiff = Infinity;
 
-    schedules.forEach(emp => {
-      emp.tasks.forEach(task => {
-        if (task.isCustom) return;
+    for (const emp of schedules) {
+      for (const task of emp.tasks) {
+        if (task.isCustom) continue;
         const [h, m] = task.time.split(':').map(Number);
         const startMins = h * 60 + m;
         const endMins = startMins + task.duration;
@@ -204,10 +204,10 @@ export const OwnerDashboard = () => {
             closestEmpName = emp.employeeName;
           }
         }
-      });
-    });
+      }
+    }
     
-    return closestTask ? { task: closestTask, employeeName: closestEmpName } : null;
+    return closestTask ? { task: closestTask as EmployeeTask, employeeName: closestEmpName } : null;
   }, [schedules]);
 
   if (loading) {
