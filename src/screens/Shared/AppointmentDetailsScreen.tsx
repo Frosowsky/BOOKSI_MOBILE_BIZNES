@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
-import { ChevronLeft, Star, Clock, User, CheckCircle2, FileText, Check } from 'lucide-react-native';
+import { ChevronLeft, Star, Clock, User, CheckCircle2, FileText, Check, UserX } from 'lucide-react-native';
 import { useThemeColors } from '../../theme/useThemeColors';
 import api from '../../api/client';
 import { AppointmentDto } from './AppointmentsScreen';
@@ -52,10 +52,8 @@ export const AppointmentDetailsScreen = () => {
   };
 
   useEffect(() => {
-    if (activeTab === 'client' && !clientDetails) {
-      fetchClientData();
-    }
-  }, [activeTab]);
+    fetchClientData();
+  }, []);
 
   const fetchClientData = async () => {
     setLoadingClient(true);
@@ -86,7 +84,10 @@ export const AppointmentDetailsScreen = () => {
     try {
       await api.post(`/companyclients/${appointment.clientId}/ratings`, {
         rating: rating,
-        comment: appointmentNotes
+        comment: appointmentNotes,
+        appointmentId: appointment.id,
+        employeeId: appointment.employeeId,
+        serviceId: appointment.serviceId
       });
       Alert.alert('Sukces', 'Ocena klienta została zapisana!');
     } catch (e) {
@@ -141,6 +142,12 @@ export const AppointmentDetailsScreen = () => {
               <View style={styles.detailsRow}>
                 <User size={18} color={colors.textMuted} />
                 <Text style={[styles.detailsText, { color: colors.text }]}>Klient: {appointment.clientName}</Text>
+                {clientDetails && clientDetails.averageRating > 0 && (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 8 }}>
+                    <Star size={14} color="#fbbf24" fill="#fbbf24" />
+                    <Text style={{ marginLeft: 4, fontWeight: 'bold', color: colors.text, fontSize: 14 }}>{clientDetails.averageRating.toFixed(1)}</Text>
+                  </View>
+                )}
               </View>
               {appointment.serviceName && (
                 <View style={styles.detailsRow}>
@@ -166,23 +173,43 @@ export const AppointmentDetailsScreen = () => {
               )}
             </View>
 
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+            <View style={{ flexDirection: 'column', gap: 12, marginBottom: 24 }}>
               {appointment.status === 0 && (
-                <>
-                  <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#10b981' }]} onPress={handleApprove}>
+                <View style={{ flexDirection: 'row', gap: 12 }}>
+                  <TouchableOpacity style={[styles.actionBtn, { flex: 1, backgroundColor: '#10b981', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6 }]} onPress={handleApprove}>
+                    <CheckCircle2 size={20} color="#fff" />
                     <Text style={styles.actionBtnText}>Zatwierdź</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#ef4444' }]} onPress={handleReject}>
+                  <TouchableOpacity style={[styles.actionBtn, { flex: 1, backgroundColor: '#ef4444', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6 }]} onPress={handleReject}>
+                    <UserX size={20} color="#fff" />
                     <Text style={styles.actionBtnText}>Odwołaj</Text>
                   </TouchableOpacity>
-                </>
+                </View>
+              )}
+              {appointment.status === 1 && (
+                <View style={{ flexDirection: 'row', gap: 12 }}>
+                  <TouchableOpacity 
+                    style={[styles.actionBtn, { flex: 1, backgroundColor: isDark ? 'rgba(34, 197, 94, 0.15)' : '#dcfce7', borderColor: isDark ? 'rgba(34, 197, 94, 0.3)' : '#86efac', borderWidth: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, paddingVertical: 14 }]} 
+                    onPress={handleComplete}
+                  >
+                    <CheckCircle2 size={22} color="#16a34a" />
+                    <Text style={[styles.actionBtnText, { color: '#16a34a', fontSize: 16 }]}>Zrealizowana</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[styles.actionBtn, { flex: 1, backgroundColor: isDark ? 'rgba(239, 68, 68, 0.1)' : '#fee2e2', borderColor: isDark ? 'rgba(239, 68, 68, 0.2)' : '#fca5a5', borderWidth: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, paddingVertical: 14 }]} 
+                    onPress={handleReject}
+                  >
+                    <UserX size={22} color="#dc2626" />
+                    <Text style={[styles.actionBtnText, { color: '#dc2626', fontSize: 16 }]}>Nie przyszedł</Text>
+                  </TouchableOpacity>
+                </View>
               )}
               {(appointment.status === 0 || appointment.status === 1) && (
                 <TouchableOpacity 
-                  style={[styles.actionBtn, { backgroundColor: colors.primary }]} 
+                  style={[styles.actionBtn, { backgroundColor: colors.surface, borderColor: colors.primary, borderWidth: 1 }]} 
                   onPress={() => navigation.navigate('NewAppointment', { editAppointmentId: appointment.id })}
                 >
-                  <Text style={styles.actionBtnText}>Edytuj Termin</Text>
+                  <Text style={[styles.actionBtnText, { color: colors.primary }]}>Edytuj Termin</Text>
                 </TouchableOpacity>
               )}
             </View>

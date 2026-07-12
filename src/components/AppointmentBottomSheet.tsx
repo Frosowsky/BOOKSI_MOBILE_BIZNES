@@ -32,7 +32,15 @@ export const AppointmentBottomSheet = ({ isVisible, onClose, appointment, onAppr
             <View style={[styles.bottomSheet, { backgroundColor: colors.surface }]}>
               <View style={styles.sheetHeader}>
                 <View style={[styles.sheetHandle, { backgroundColor: isDark ? '#475569' : '#cbd5e1' }]} />
-                <Text style={[styles.sheetTitle, { color: colors.text }]}>{appointment.clientName}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                  <Text style={[styles.sheetTitle, { color: colors.text, marginBottom: 0 }]}>{appointment.clientName}</Text>
+                  {appointment.clientAverageRating && appointment.clientAverageRating > 0 ? (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 8 }}>
+                      <Text style={{ fontWeight: 'bold', color: '#fbbf24', fontSize: 16 }}>{appointment.clientAverageRating.toFixed(1)}</Text>
+                      <Text style={{ fontSize: 16, marginLeft: 2 }}>⭐</Text>
+                    </View>
+                  ) : null}
+                </View>
                 <Text style={{ color: colors.textMuted, fontSize: 14 }}>{appointment.serviceName}</Text>
                 <Text style={{ color: colors.textMuted, fontSize: 14, marginBottom: 16 }}>
                   {new Date(appointment.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(appointment.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

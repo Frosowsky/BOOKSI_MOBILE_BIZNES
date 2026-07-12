@@ -30,6 +30,7 @@ export interface AppointmentDto {
   endTime: string;
   status: number; 
   notes?: string;
+  clientAverageRating?: number;
 }
 
 export const AppointmentsScreen = () => {

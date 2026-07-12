@@ -229,6 +229,15 @@ export const ServicesScreen = () => {
   const selectSuggestion = (id: string, name: string) => {
     setSName(name);
     setSStandardServiceId(id);
+    
+    const stdService = standardServices.find(s => s.id === id);
+    if (stdService && stdService.standardServiceCategoryId) {
+      const localCat = categories.find(c => c.standardServiceCategoryId === stdService.standardServiceCategoryId);
+      if (localCat) {
+        setSCatId(localCat.id);
+      }
+    }
+    
     setShowSuggestions(false);
   };
 

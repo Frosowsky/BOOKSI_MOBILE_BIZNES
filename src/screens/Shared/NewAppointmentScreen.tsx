@@ -5,6 +5,7 @@ import { Calendar as CalendarIcon, Clock, User, Scissors, Check, X } from 'lucid
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useThemeColors } from '../../theme/useThemeColors';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
 
 export const NewAppointmentScreen = () => {
   const { colors, isDark } = useThemeColors();
@@ -28,6 +29,13 @@ export const NewAppointmentScreen = () => {
   const [dateStr, setDateStr] = useState(''); // YYYY-MM-DD
   const [timeStr, setTimeStr] = useState(''); // HH:mm
   const [notes, setNotes] = useState('');
+
+  const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
+  const [isTimePickerVisible, setTimePickerVisibility] = useState(false);
+
+  const [clientSearch, setClientSearch] = useState('');
+  const [employeeSearch, setEmployeeSearch] = useState('');
+  const [serviceSearch, setServiceSearch] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -112,33 +120,52 @@ export const NewAppointmentScreen = () => {
     }
   };
 
-  const renderSelection = (items: any[], selectedValue: string, onSelect: (val: string) => void, placeholder: string) => {
+  const renderSelection = (items: any[], selectedValue: string, onSelect: (val: string) => void, placeholder: string, searchVal: string, setSearchVal: (val: string) => void) => {
+    const filtered = items.filter(item => {
+      if (!searchVal) return true;
+      const label = (item.name || `${item.firstName} ${item.lastName}`).toLowerCase();
+      const phone = (item.phoneNumber || '').toLowerCase();
+      const s = searchVal.toLowerCase();
+      return label.includes(s) || phone.includes(s);
+    });
+
     return (
-      <View style={styles.selectionGroup}>
-        {items.map(item => {
-          const isSelected = item.id === selectedValue;
-          const label = item.name || `${item.firstName} ${item.lastName}`;
-          return (
-            <TouchableOpacity 
-              key={item.id} 
-              style={[
-                styles.selectBtn, 
-                { backgroundColor: isDark ? '#334155' : '#e2e8f0' },
-                isSelected && { backgroundColor: colors.primary }
-              ]}
-              onPress={() => onSelect(item.id)}
-            >
-              <Text style={[
-                styles.selectBtnText, 
-                { color: isDark ? '#cbd5e1' : '#475569' },
-                isSelected && styles.selectBtnTextActive
-              ]}>
-                {label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-        {items.length === 0 && <Text style={[styles.noItems, { color: colors.textMuted }]}>Brak danych do wyboru</Text>}
+      <View style={{ marginBottom: 8 }}>
+        <TextInput
+          style={[styles.input, { backgroundColor: isDark ? '#1e293b' : '#f1f5f9', color: colors.text, borderColor: colors.border, marginBottom: 8, paddingVertical: 8 }]}
+          placeholder={`Wyszukaj: ${placeholder}`}
+          placeholderTextColor={colors.textMuted}
+          value={searchVal}
+          onChangeText={setSearchVal}
+        />
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scrollSelect}>
+          <View style={styles.selectionGroup}>
+            {filtered.slice(0, 15).map(item => {
+              const isSelected = item.id === selectedValue;
+              const label = item.name || `${item.firstName} ${item.lastName}`;
+              return (
+                <TouchableOpacity 
+                  key={item.id} 
+                  style={[
+                    styles.selectBtn, 
+                    { backgroundColor: isDark ? '#334155' : '#e2e8f0' },
+                    isSelected && { backgroundColor: colors.primary }
+                  ]}
+                  onPress={() => onSelect(item.id)}
+                >
+                  <Text style={[
+                    styles.selectBtnText, 
+                    { color: isDark ? '#cbd5e1' : '#475569' },
+                    isSelected && styles.selectBtnTextActive
+                  ]}>
+                    {label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+            {filtered.length === 0 && <Text style={[styles.noItems, { color: colors.textMuted }]}>Brak wyników</Text>}
+          </View>
+        </ScrollView>
       </View>
     );
   };
@@ -163,42 +190,51 @@ export const NewAppointmentScreen = () => {
       <ScrollView contentContainerStyle={styles.content}>
 
         <Text style={[styles.label, { color: colors.text }]}><User size={16} color={colors.textMuted}/> Wybierz Klienta</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scrollSelect}>
-          {renderSelection(clients, selectedClient, setSelectedClient, 'Wybierz klienta...')}
-        </ScrollView>
+        {renderSelection(clients, selectedClient, setSelectedClient, 'np. Jan Kowalski', clientSearch, setClientSearch)}
 
         <Text style={[styles.label, { color: colors.text }]}><User size={16} color={colors.textMuted}/> Wybierz Pracownika</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scrollSelect}>
-          {renderSelection(employees, selectedEmployee, setSelectedEmployee, 'Wybierz pracownika...')}
-        </ScrollView>
+        {renderSelection(employees, selectedEmployee, setSelectedEmployee, 'np. Anna', employeeSearch, setEmployeeSearch)}
 
         <Text style={[styles.label, { color: colors.text }]}><Scissors size={16} color={colors.textMuted}/> Wybierz Usługę</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scrollSelect}>
-          {renderSelection(services, selectedService, setSelectedService, 'Wybierz usługę...')}
-        </ScrollView>
+        {renderSelection(services, selectedService, setSelectedService, 'np. Strzyżenie', serviceSearch, setServiceSearch)}
 
         <View style={styles.row}>
-          <View style={{flex: 1, marginRight: 8}}>
-            <Text style={[styles.label, { color: colors.text }]}><CalendarIcon size={16} color={colors.textMuted}/> Data (YYYY-MM-DD)</Text>
-            <TextInput 
-              style={[styles.input, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]} 
-              value={dateStr}
-              onChangeText={setDateStr}
-              placeholder="np. 2024-12-01"
-              placeholderTextColor={colors.textMuted}
-            />
-          </View>
-          <View style={{flex: 1, marginLeft: 8}}>
-            <Text style={[styles.label, { color: colors.text }]}><Clock size={16} color={colors.textMuted}/> Czas (HH:MM)</Text>
-            <TextInput 
-              style={[styles.input, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]} 
-              value={timeStr}
-              onChangeText={setTimeStr}
-              placeholder="np. 14:30"
-              placeholderTextColor={colors.textMuted}
-            />
-          </View>
+          <TouchableOpacity style={{flex: 1, marginRight: 8}} onPress={() => setDatePickerVisibility(true)}>
+            <Text style={[styles.label, { color: colors.text }]}><CalendarIcon size={16} color={colors.textMuted}/> Data</Text>
+            <View style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, justifyContent: 'center' }]}>
+              <Text style={{ color: dateStr ? colors.text : colors.textMuted }}>
+                {dateStr || 'Wybierz datę'}
+              </Text>
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity style={{flex: 1, marginLeft: 8}} onPress={() => setTimePickerVisibility(true)}>
+            <Text style={[styles.label, { color: colors.text }]}><Clock size={16} color={colors.textMuted}/> Czas</Text>
+            <View style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, justifyContent: 'center' }]}>
+              <Text style={{ color: timeStr ? colors.text : colors.textMuted }}>
+                {timeStr || 'Wybierz godzinę'}
+              </Text>
+            </View>
+          </TouchableOpacity>
         </View>
+
+        <DateTimePickerModal
+          isVisible={isDatePickerVisible}
+          mode="date"
+          onConfirm={(date) => {
+            setDateStr(date.toISOString().split('T')[0]);
+            setDatePickerVisibility(false);
+          }}
+          onCancel={() => setDatePickerVisibility(false)}
+        />
+        <DateTimePickerModal
+          isVisible={isTimePickerVisible}
+          mode="time"
+          onConfirm={(date) => {
+            setTimeStr(date.toTimeString().substring(0, 5));
+            setTimePickerVisibility(false);
+          }}
+          onCancel={() => setTimePickerVisibility(false)}
+        />
 
         <Text style={[styles.label, { color: colors.text }]}>Dodatkowe Notatki</Text>
         <TextInput 
