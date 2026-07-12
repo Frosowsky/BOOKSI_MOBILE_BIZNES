@@ -14,6 +14,7 @@ import { AppointmentBottomSheet } from '../../components/AppointmentBottomSheet'
 
 interface Stats {
   revenueToday: number;
+  potentialRevenueToday: number;
   newClients: number;
   appointmentsToday: number;
 }
@@ -230,10 +231,18 @@ export const OwnerDashboard = () => {
             color="#10b981" 
           />
           <StatCard 
+            title="Potencjalny dziś" 
+            value={`${stats?.potentialRevenueToday || 0} PLN`} 
+            icon={TrendingUp} 
+            color="#3b82f6" 
+          />
+        </View>
+        <View style={styles.statsRow}>
+          <StatCard 
             title="Wizyty dziś" 
             value={stats?.appointmentsToday || 0} 
             icon={CalendarIcon} 
-            color="#3b82f6" 
+            color="#8b5cf6" 
           />
         </View>
         <View style={styles.statsRow}>

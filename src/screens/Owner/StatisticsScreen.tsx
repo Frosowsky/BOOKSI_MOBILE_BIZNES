@@ -85,25 +85,33 @@ export const StatisticsScreen = () => {
             <>
               <View style={styles.statsRow}>
                 <StatCard 
-                  title="Całkowity Przychód" 
+                  title="Przychód Zrealizowany" 
                   value={`${stats.totalRevenue || 0} PLN`} 
                   icon={TrendingUp} 
                   color="#10b981" 
                 />
                 <StatCard 
-                  title="Zrealizowane Wizyty" 
-                  value={stats.appointmentsCount || 0} 
-                  icon={CheckCircle} 
+                  title="Przychód Potencjalny" 
+                  value={`${stats.potentialRevenue || 0} PLN`} 
+                  icon={TrendingUp} 
                   color="#3b82f6" 
                 />
               </View>
-              <View style={styles.statsRow}>
+              <View style={[styles.statsRow, { marginTop: 12 }]}>
+                <StatCard 
+                  title="Zrealizowane Wizyty" 
+                  value={stats.appointmentsCount || 0} 
+                  icon={CheckCircle} 
+                  color="#8b5cf6" 
+                />
                 <StatCard 
                   title="Nowi Klienci" 
                   value={stats.newClientsCount || 0} 
                   icon={Users} 
                   color="#f59e0b" 
                 />
+              </View>
+              <View style={[styles.statsRow, { marginTop: 12 }]}>
                 <StatCard 
                   title="Anulowane Wizyty" 
                   value={stats.cancelledAppointmentsCount || 0} 

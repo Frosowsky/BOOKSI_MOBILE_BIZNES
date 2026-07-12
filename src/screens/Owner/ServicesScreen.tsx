@@ -18,6 +18,7 @@ interface CategoryDto {
   id: string;
   name: string;
   description?: string;
+  standardServiceCategoryId?: string;
 }
 
 export const ServicesScreen = () => {
