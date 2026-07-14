@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Modal } from 'react-native';
 import api from '../../api/client';
 import { Calendar as CalendarIcon, Clock, User, Scissors, Check, X } from 'lucide-react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -36,6 +36,13 @@ export const NewAppointmentScreen = () => {
   const [clientSearch, setClientSearch] = useState('');
   const [employeeSearch, setEmployeeSearch] = useState('');
   const [serviceSearch, setServiceSearch] = useState('');
+
+  // New Client states
+  const [isAddClientVisible, setAddClientVisible] = useState(false);
+  const [newClientFirst, setNewClientFirst] = useState('');
+  const [newClientLast, setNewClientLast] = useState('');
+  const [newClientPhone, setNewClientPhone] = useState('');
+  const [isAddingClient, setIsAddingClient] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -77,6 +84,33 @@ export const NewAppointmentScreen = () => {
     fetchData();
   }, []);
 
+  const handleAddClient = async () => {
+    if (!newClientFirst || !newClientLast) {
+      Alert.alert('Błąd', 'Imię i nazwisko są wymagane.');
+      return;
+    }
+    setIsAddingClient(true);
+    try {
+      const res = await api.post('/CompanyClients', {
+        firstName: newClientFirst,
+        lastName: newClientLast,
+        phone: newClientPhone
+      });
+      const newClient = res.data;
+      setClients(prev => [...prev, newClient]);
+      setSelectedClient(newClient.id);
+      setAddClientVisible(false);
+      setNewClientFirst('');
+      setNewClientLast('');
+      setNewClientPhone('');
+    } catch (e) {
+      console.error(e);
+      Alert.alert('Błąd', 'Nie udało się dodać klienta.');
+    } finally {
+      setIsAddingClient(false);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!selectedClient || !selectedEmployee || !selectedService || !dateStr || !timeStr) {
       Alert.alert('Błąd', 'Proszę wypełnić wszystkie wymagane pola.');
@@ -112,9 +146,10 @@ export const NewAppointmentScreen = () => {
           { text: 'OK', onPress: () => navigation.goBack() }
         ]);
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      Alert.alert('Błąd', 'Nie udało się zapisać wizyty.');
+      const msg = e.response?.data?.message || 'Nie udało się zapisać wizyty.';
+      Alert.alert('Błąd', msg);
     } finally {
       setSubmitting(false);
     }
@@ -189,7 +224,12 @@ export const NewAppointmentScreen = () => {
       </View>
       <ScrollView contentContainerStyle={styles.content}>
 
-        <Text style={[styles.label, { color: colors.text }]}><User size={16} color={colors.textMuted}/> Wybierz Klienta</Text>
+        <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, marginBottom: 8}}>
+          <Text style={[styles.label, { color: colors.text, marginTop: 0, marginBottom: 0 }]}><User size={16} color={colors.textMuted}/> Wybierz Klienta</Text>
+          <TouchableOpacity onPress={() => setAddClientVisible(true)}>
+             <Text style={{color: colors.primary, fontWeight: 'bold', fontSize: 14}}>+ Dodaj klienta</Text>
+          </TouchableOpacity>
+        </View>
         {renderSelection(clients, selectedClient, setSelectedClient, 'np. Jan Kowalski', clientSearch, setClientSearch)}
 
         <Text style={[styles.label, { color: colors.text }]}><User size={16} color={colors.textMuted}/> Wybierz Pracownika</Text>
@@ -262,6 +302,52 @@ export const NewAppointmentScreen = () => {
         </TouchableOpacity>
 
       </ScrollView>
+
+      {/* New Client Modal */}
+      <Modal visible={isAddClientVisible} animationType="slide" transparent={true} onRequestClose={() => setAddClientVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
+            <Text style={[styles.title, { color: colors.text, marginBottom: 16 }]}>Nowy Klient</Text>
+            
+            <Text style={{color: colors.text, marginBottom: 4}}>Imię *</Text>
+            <TextInput 
+              style={[styles.input, { backgroundColor: isDark ? '#1e293b' : '#f1f5f9', color: colors.text, borderColor: colors.border, marginBottom: 12 }]}
+              value={newClientFirst} onChangeText={setNewClientFirst}
+            />
+            
+            <Text style={{color: colors.text, marginBottom: 4}}>Nazwisko *</Text>
+            <TextInput 
+              style={[styles.input, { backgroundColor: isDark ? '#1e293b' : '#f1f5f9', color: colors.text, borderColor: colors.border, marginBottom: 12 }]}
+              value={newClientLast} onChangeText={setNewClientLast}
+            />
+            
+            <Text style={{color: colors.text, marginBottom: 4}}>Telefon</Text>
+            <TextInput 
+              style={[styles.input, { backgroundColor: isDark ? '#1e293b' : '#f1f5f9', color: colors.text, borderColor: colors.border, marginBottom: 24 }]}
+              value={newClientPhone} onChangeText={setNewClientPhone}
+              keyboardType="phone-pad"
+            />
+            
+            <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
+              <TouchableOpacity 
+                style={[styles.modalBtn, { backgroundColor: colors.border }]} 
+                onPress={() => setAddClientVisible(false)}
+              >
+                <Text style={{color: colors.text, fontWeight: 'bold'}}>Anuluj</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.modalBtn, { backgroundColor: colors.primary }]} 
+                onPress={handleAddClient}
+                disabled={isAddingClient}
+              >
+                {isAddingClient ? <ActivityIndicator color="#fff"/> : <Text style={{color: '#fff', fontWeight: 'bold'}}>Dodaj</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
   );
 };
@@ -284,5 +370,8 @@ const styles = StyleSheet.create({
   input: { backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8, padding: 12, fontSize: 16, color: '#0f172a' },
   textArea: { height: 100, textAlignVertical: 'top' },
   submitBtn: { backgroundColor: '#10b981', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', padding: 16, borderRadius: 12, marginTop: 32, marginBottom: 40 },
-  submitBtnText: { color: '#ffffff', fontSize: 16, fontWeight: 'bold' }
+  submitBtnText: { color: '#ffffff', fontSize: 16, fontWeight: 'bold' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+  modalContent: { width: '90%', padding: 20, borderRadius: 12, elevation: 5, shadowColor: '#000', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.25, shadowRadius: 3.84 },
+  modalBtn: { flex: 1, padding: 14, borderRadius: 8, alignItems: 'center', marginHorizontal: 4 }
 });
