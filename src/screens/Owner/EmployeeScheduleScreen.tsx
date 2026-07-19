@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert, TextInput } from 'react-native';
 import api from '../../api/client';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useOffline } from '../../context/OfflineContext';
 import { ArrowLeft, ChevronLeft, ChevronRight, Save, Plus, X } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -41,6 +43,7 @@ export const EmployeeScheduleScreen = () => {
     return d;
   });
   
+  const { isOffline } = useOffline();
   const [scheduleData, setScheduleData] = useState<DaySchedule[]>([]);
 
   const fetchMonthData = useCallback(async (date: Date) => {
@@ -53,8 +56,23 @@ export const EmployeeScheduleScreen = () => {
       const startStr = `${year}-${String(month).padStart(2, '0')}-01`;
       const endStr = `${year}-${String(month).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
       
-      const res = await api.get(`/Employees/schedules?start=${startStr}&end=${endStr}&employeeId=${employeeId}`);
-      const existing = res.data || [];
+      const cacheKey = `schedule_${employeeId}_${startStr}_${endStr}`;
+      let existing = [];
+      
+      try {
+          const res = await api.get(`/Employees/schedules?start=${startStr}&end=${endStr}&employeeId=${employeeId}`);
+          existing = res.data || [];
+          await AsyncStorage.setItem(cacheKey, JSON.stringify(existing));
+      } catch (err: any) {
+          if (isOffline || err.message === 'Network Error' || err.isOfflineMock) {
+              const cachedStr = await AsyncStorage.getItem(cacheKey);
+              if (cachedStr) {
+                  existing = JSON.parse(cachedStr);
+              }
+          } else {
+              throw err;
+          }
+      }
 
       const builtData: DaySchedule[] = [];
       for (let day = 1; day <= daysInMonth; day++) {

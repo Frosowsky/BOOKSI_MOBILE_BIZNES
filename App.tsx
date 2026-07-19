@@ -4,6 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from './src/context/AuthContext';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { ThemeProvider } from './src/context/ThemeContext';
+import { OfflineProvider } from './src/context/OfflineContext';
 
 import * as Sentry from '@sentry/react-native';
 
@@ -15,14 +16,16 @@ Sentry.init({
 function App() {
   return (
     <SafeAreaProvider>
-      <ThemeProvider>
-        <AuthProvider>
-          <View style={styles.container}>
-            <RootNavigator />
-            <StatusBar style="auto" />
-          </View>
-        </AuthProvider>
-      </ThemeProvider>
+      <OfflineProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <View style={styles.container}>
+              <RootNavigator />
+              <StatusBar style="auto" />
+            </View>
+          </AuthProvider>
+        </ThemeProvider>
+      </OfflineProvider>
     </SafeAreaProvider>
   );
 }

@@ -1,5 +1,6 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import NetInfo from '@react-native-community/netinfo';
 import { signRequest } from '../lib/SecurityInterceptor';
 
 // In Expo, process.env is sometimes available, but often EXPO_PUBLIC_ prefix is used
@@ -26,6 +27,27 @@ api.interceptors.request.use(async (config) => {
     }
     // Zabezpieczenie przed Scrapingiem (HMAC + Nonce)
     config = signRequest(config);
+    
+    // Offline Queue Logic
+    const netState = await NetInfo.fetch();
+    const isOffline = !(netState.isConnected && netState.isInternetReachable !== false);
+    
+    if (isOffline && config.method && ['post', 'put', 'patch', 'delete'].includes(config.method.toLowerCase())) {
+        const queueRaw = await AsyncStorage.getItem('offlineQueue');
+        const queue = queueRaw ? JSON.parse(queueRaw) : [];
+        queue.push({
+            url: config.url,
+            method: config.method,
+            data: config.data,
+            headers: config.headers,
+            timestamp: new Date().toISOString()
+        });
+        await AsyncStorage.setItem('offlineQueue', JSON.stringify(queue));
+        
+        // Zwracamy fałszywy sukces, by UI pokazało, że się udało
+        return Promise.reject({ isOfflineMock: true, message: 'Saved to offline queue' });
+    }
+    
   } catch (error) {
     console.error('Error in request interceptor:', error);
   }
@@ -50,7 +72,14 @@ const processQueue = (error: any, token: string | null = null) => {
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
+    // Handling our custom offline mock reject
+    if (error && error.isOfflineMock) {
+        return Promise.resolve({ data: { message: "Saved offline", success: true, offline: true }, status: 200, statusText: "OK", headers: {}, config: error.config });
+    }
+
     const originalRequest = error.config;
+    
+    if (!originalRequest) return Promise.reject(error);
     
     if (originalRequest.url?.includes('/auth/refresh')) {
         return Promise.reject(error);
