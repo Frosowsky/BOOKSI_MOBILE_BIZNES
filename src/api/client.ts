@@ -33,6 +33,20 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
+let isRefreshing = false;
+let failedQueue: { resolve: (token: string) => void; reject: (error: any) => void }[] = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token as string);
+    }
+  });
+  failedQueue = [];
+};
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -43,7 +57,22 @@ api.interceptors.response.use(
     }
 
     if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        return new Promise(function(resolve, reject) {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((token) => {
+            originalRequest.headers['Authorization'] = `Bearer ${token}`;
+            return api(originalRequest);
+          })
+          .catch((err) => {
+            return Promise.reject(err);
+          });
+      }
+
       originalRequest._retry = true;
+      isRefreshing = true;
+
       try {
         const refreshToken = await AsyncStorage.getItem('refreshToken');
         const token = await AsyncStorage.getItem('token');
@@ -58,17 +87,23 @@ api.interceptors.response.use(
             await AsyncStorage.setItem('token', res.data.token);
             await AsyncStorage.setItem('refreshToken', res.data.refreshToken);
             
+            api.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
             originalRequest.headers['Authorization'] = `Bearer ${res.data.token}`;
+            
+            processQueue(null, res.data.token);
             
             return api(originalRequest);
           }
         }
       } catch (err) {
-        // Refresh failed, clear storage
+        processQueue(err, null);
         await AsyncStorage.multiRemove(['token', 'refreshToken', 'user_role', 'tenant_id', 'salonId']);
         import('react-native').then(({ DeviceEventEmitter }) => {
           DeviceEventEmitter.emit('UNAUTHORIZED');
         });
+        return Promise.reject(err);
+      } finally {
+        isRefreshing = false;
       }
     }
     return Promise.reject(error);
