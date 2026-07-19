@@ -1,5 +1,6 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { signRequest } from '../lib/SecurityInterceptor';
 
 // In Expo, process.env is sometimes available, but often EXPO_PUBLIC_ prefix is used
 // For now, we will use the production API URL as fallback, or EXPO_PUBLIC_API_URL
@@ -23,6 +24,8 @@ api.interceptors.request.use(async (config) => {
       config.headers.set('X-Salon-Id', salonId);
       config.headers.set('X-Tenant-Id', salonId);
     }
+    // Zabezpieczenie przed Scrapingiem (HMAC + Nonce)
+    config = signRequest(config);
   } catch (error) {
     console.error('Error in request interceptor:', error);
   }
