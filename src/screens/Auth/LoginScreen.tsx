@@ -160,14 +160,14 @@ export const LoginScreen = () => {
 
         <View style={styles.formContainer}>
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Email</Text>
+            <Text style={styles.label}>E-mail lub numer telefonu</Text>
             <TextInput
               style={styles.input}
               value={email}
               onChangeText={setEmail}
-              placeholder="Wprowadź email"
+              placeholder="Wprowadź email lub numer"
               autoCapitalize="none"
-              keyboardType="email-address"
+              keyboardType="default"
               editable={!loading}
             />
           </View>
