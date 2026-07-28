@@ -125,13 +125,16 @@ export const NewAppointmentScreen = () => {
       const startDateTime = new Date(`${dateStr}T${timeStr}:00`);
       const endDateTime = new Date(startDateTime.getTime() + duration * 60000);
 
+      const endH = endDateTime.getHours().toString().padStart(2, '0');
+      const endM = endDateTime.getMinutes().toString().padStart(2, '0');
+
       const payload = {
         id: editAppointmentId,
         clientId: selectedClient,
         employeeId: selectedEmployee,
         serviceId: selectedService,
-        startTime: startDateTime.toISOString(),
-        endTime: endDateTime.toISOString(),
+        startTime: `${dateStr}T${timeStr}:00`,
+        endTime: `${dateStr}T${endH}:${endM}:00`,
         notes: notes
       };
 
