@@ -28,6 +28,8 @@ import { StatisticsScreen } from '../screens/Owner/StatisticsScreen';
 import { EmployeeScheduleScreen } from '../screens/Owner/EmployeeScheduleScreen';
 
 import { SettingsScreen } from '../screens/Owner/SettingsScreen';
+import { GroupEventsScreen } from '../screens/Owner/GroupEventsScreen';
+import { GroupEventParticipantsScreen } from '../screens/Owner/GroupEventParticipantsScreen';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -42,6 +44,8 @@ export type RootStackParamList = {
   Statistics: undefined;
   Settings: undefined;
   SetupWizard: undefined;
+  GroupEvents: undefined;
+  GroupEventParticipants: { eventId: string; eventDetails: any };
   EmployeeSchedule: { employeeId: string; employeeName: string };
   AppointmentDetails: { appointment: any };
   ClientDetails: { clientId: string };
@@ -202,6 +206,8 @@ export const RootNavigator = () => {
                     <Stack.Screen name="Statistics" component={StatisticsScreen} />
                     <Stack.Screen name="Settings" component={SettingsScreen} />
                     <Stack.Screen name="EmployeeSchedule" component={EmployeeScheduleScreen} />
+                    <Stack.Screen name="GroupEvents" component={GroupEventsScreen} />
+                    <Stack.Screen name="GroupEventParticipants" component={GroupEventParticipantsScreen} />
                   </>
                 )}
               </>

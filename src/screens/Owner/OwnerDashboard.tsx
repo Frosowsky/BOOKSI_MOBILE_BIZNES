@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, memo, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl, Alert } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
-import { LogOut, TrendingUp, Users, Calendar as CalendarIcon, Clock, Megaphone, MessageSquare, CreditCard, ClipboardList, BarChart2, Settings } from 'lucide-react-native';
+import { LogOut, TrendingUp, Users, Calendar as CalendarIcon, Clock, Megaphone, MessageSquare, CreditCard, ClipboardList, BarChart2, Settings, GraduationCap } from 'lucide-react-native';
 import api from '../../api/client';
 import { StatCard } from '../../components/StatCard';
 import { CallerIdService } from '../../services/CallerIdService';
@@ -275,6 +275,13 @@ export const OwnerDashboard = () => {
               <Settings size={24} color={isDark ? '#cbd5e1' : '#475569'} />
             </View>
             <Text style={[styles.toolTitle, { color: colors.textMuted }]}>Ustawienia</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.toolTile} onPress={() => navigation.navigate('GroupEvents')}>
+            <View style={[styles.iconWrapper, { backgroundColor: isDark ? '#1e40af' : '#dbeafe' }]}>
+              <GraduationCap size={24} color={isDark ? '#93c5fd' : '#2563eb'} />
+            </View>
+            <Text style={[styles.toolTitle, { color: colors.textMuted }]}>Szkolenia</Text>
           </TouchableOpacity>
         </View>
 
