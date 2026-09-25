@@ -111,9 +111,24 @@ export const NewAppointmentScreen = () => {
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (forcePast: boolean = false) => {
     if (!selectedClient || !selectedEmployee || !selectedService || !dateStr || !timeStr) {
       Alert.alert('Błąd', 'Proszę wypełnić wszystkie wymagane pola.');
+      return;
+    }
+
+    const startDateTime = new Date(`${dateStr}T${timeStr}:00`);
+    const isPast = startDateTime.getTime() < Date.now();
+
+    if (isPast && !editAppointmentId && !forcePast) {
+      Alert.alert(
+        'Termin w przeszłości',
+        'Wybrany termin znajduje się w przeszłości. Czy na pewno chcesz dodać wizytę historyczną?',
+        [
+          { text: 'Anuluj', style: 'cancel' },
+          { text: 'Tak, dodaj', onPress: () => handleSubmit(true) }
+        ]
+      );
       return;
     }
 
@@ -122,7 +137,6 @@ export const NewAppointmentScreen = () => {
       const service = services.find(s => s.id === selectedService);
       const duration = service?.durationMinutes || 60;
       
-      const startDateTime = new Date(`${dateStr}T${timeStr}:00`);
       const endDateTime = new Date(startDateTime.getTime() + duration * 60000);
 
       const endH = endDateTime.getHours().toString().padStart(2, '0');
@@ -135,7 +149,8 @@ export const NewAppointmentScreen = () => {
         serviceId: selectedService,
         startTime: `${dateStr}T${timeStr}:00`,
         endTime: `${dateStr}T${endH}:${endM}:00`,
-        notes: notes
+        notes: notes,
+        allowPastAppointment: isPast
       };
 
       if (editAppointmentId) {

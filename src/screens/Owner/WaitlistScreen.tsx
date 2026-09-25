@@ -61,18 +61,23 @@ export const WaitlistScreen = () => {
     const isProposed = !!item.proposedDate;
     
     return (
-      <View style={styles.card}>
+      <View style={[styles.card, item.isExpired && { opacity: 0.65 }]}>
         <View style={styles.cardHeader}>
           <View style={styles.clientInfo}>
-            <User color="#4F46E5" size={20} />
+            <User color={item.isExpired ? "#9CA3AF" : "#4F46E5"} size={20} />
             <Text style={styles.clientName}>{item.client?.firstName} {item.client?.lastName}</Text>
+            {item.isExpired && (
+              <View style={styles.expiredBadge}>
+                <Text style={styles.expiredBadgeText}>Wygasło</Text>
+              </View>
+            )}
           </View>
           <TouchableOpacity onPress={() => handleDelete(item.id)}>
             <X color="#EF4444" size={24} />
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.serviceName}>{item.service?.name}</Text>
+        <Text style={[styles.serviceName, item.isExpired && { color: '#6B7280' }]}>{item.service?.name}</Text>
         
         <View style={styles.detailsRow}>
           <View style={styles.detailItem}>
@@ -92,7 +97,7 @@ export const WaitlistScreen = () => {
               {new Date(item.proposedDate!).toLocaleDateString()} {item.proposedTimeStart?.substring(0, 5)}
             </Text>
           </View>
-        ) : (
+        ) : !item.isExpired ? (
           <View style={styles.actionsBox}>
             <TouchableOpacity style={styles.proposeBtn} onPress={() => {
                 Alert.alert('Proponowanie', 'Ta funkcja otworzy formularz wyboru nowego terminu (wkrótce).');
@@ -100,7 +105,7 @@ export const WaitlistScreen = () => {
               <Text style={styles.proposeBtnText}>Zaproponuj Termin</Text>
             </TouchableOpacity>
           </View>
-        )}
+        ) : null}
       </View>
     );
   };
@@ -250,5 +255,19 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     marginTop: 40,
     fontSize: 16
+  },
+  expiredBadge: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginLeft: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB'
+  },
+  expiredBadgeText: {
+    color: '#6B7280',
+    fontSize: 11,
+    fontWeight: 'bold'
   }
 });
