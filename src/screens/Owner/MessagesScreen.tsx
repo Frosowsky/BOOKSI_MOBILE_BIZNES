@@ -1,25 +1,39 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../api/client';
 import { MessageSquare, ArrowLeft } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useThemeColors } from '../../theme/useThemeColors';
+import { useAuth } from '../../context/AuthContext';
 
 export const MessagesScreen = () => {
   const { colors, isDark } = useThemeColors();
   const navigation = useNavigation();
+  const { salonId: contextSalonId } = useAuth();
   const [chats, setChats] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchChats = async () => {
     try {
-      // Mocking salonId since we don't have it explicitly stored in frontend yet 
-      // or we can fetch it. For now let's pass a placeholder "default"
-      const res = await api.get('/Chat/salon/default');
-      setChats(res.data);
+      let targetSalonId = contextSalonId;
+      if (!targetSalonId) {
+        targetSalonId = await AsyncStorage.getItem('salonId');
+      }
+      if (!targetSalonId) {
+        const salonRes = await api.get('/salons/my-salon').catch(() => api.get('/Salons/me'));
+        targetSalonId = salonRes.data?.id;
+      }
+      if (targetSalonId) {
+        const res = await api.get(`/Chat/salon/${targetSalonId}`);
+        setChats(Array.isArray(res.data) ? res.data : []);
+      } else {
+        setChats([]);
+      }
     } catch (e) {
-      console.error(e);
+      console.error('Error fetching chats:', e);
+      setChats([]);
     }
   };
 
